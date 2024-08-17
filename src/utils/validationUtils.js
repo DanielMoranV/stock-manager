@@ -1,0 +1,30 @@
+export function validateDNI(dni) {
+    return /^\d{8}$/.test(dni);
+}
+export function validateRUC(ruc) {
+    return /^\d{11}$/.test(ruc);
+}
+
+export function validateEmail(email) {
+    const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    return emailPattern.test(email);
+}
+
+export function validatePhone(phone) {
+    return /^\d{9}$/.test(phone);
+}
+
+export function capitalizeName(name) {
+    return name.replace(/\b\w/g, (char) => char.toUpperCase());
+}
+
+export function restrictToNumbers(event) {
+    const charCode = event.which ? event.which : event.keyCode;
+    if (charCode < 48 || charCode > 57) {
+        event.preventDefault();
+    }
+}
+
+export function findIndexById(id, array) {
+    return array.findIndex((item) => item.id === id);
+}
