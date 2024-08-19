@@ -1,5 +1,5 @@
 <script setup>
-import { useAuthStore } from '@/stores/auth';
+import { useAuthStore } from '@/stores/authStore';
 import { useUsersStore } from '@/stores/users';
 import { useToast } from 'primevue/usetoast';
 import { onMounted, ref, watch } from 'vue';
@@ -19,6 +19,7 @@ const authStore = useAuthStore();
 const user = ref({
     dni: '',
     email: '',
+    phone: '',
     role: { id: '', name: '' },
     company: { company_name: '' },
     url_photo_profile: ''
@@ -87,12 +88,12 @@ const updateUser = async () => {
         name: user.value.name,
         dni: user.value.dni,
         email: user.value.email,
-        phone: user.value.phone,
-        password: user.value.password
+        phone: user.value.phone
     };
 
     try {
         const response = await userStore.updateUser(payload, user.value.id);
+        authStore.updateUser(user.value);
         handleApiResponse(response, toast);
     } catch (error) {
         console.error(error);
@@ -110,6 +111,7 @@ const updatePassword = async () => {
     if (password === confirmPassword) {
         try {
             const response = await userStore.updateUser({ password: password }, user.value.id);
+            authStore.updateUser(user.value);
             handleApiResponse(response, toast);
         } catch (error) {
             console.error(error);
@@ -125,7 +127,7 @@ const updatePassword = async () => {
 
 // Manejar carga de foto de perfil
 const beforeUpload = (request) => {
-    request.xhr.setRequestHeader('Authorization', 'Bearer ' + authStore.user.access_token);
+    request.xhr.setRequestHeader('Authorization', 'Bearer ' + authStore.getToken);
     return request;
 };
 
@@ -134,6 +136,11 @@ const onUpload = async (request) => {
     try {
         const response = typeof request.xhr.response === 'string' ? JSON.parse(request.xhr.response) : request.xhr.response;
         const urlPhotoProfile = response.data.url_photo_profile;
+        const payload = {
+            ...user.value,
+            url_photo_profile: urlPhotoProfile
+        };
+        authStore.updateUser(payload);
         user.value.url_photo_profile = storage_url + urlPhotoProfile;
         toast.add({ severity: 'success', summary: 'Foto de perfil actualizada correctamente', life: 4000 });
     } catch (error) {
@@ -146,9 +153,17 @@ const onUpload = async (request) => {
 
 // Cargar datos del usuario
 onMounted(async () => {
-    const data = await authStore.me();
-    user.value = data.user;
-    user.value.url_photo_profile = storage_url + user.value.url_photo_profile;
+    user.value = authStore.getUser;
+
+    const defaultProfile = '/images/profile.png';
+    const protoProfile = user.value.url_photo_profile ?? defaultProfile;
+
+    // Si el perfil no contiene la URL de almacenamiento y no es la imagen predeterminada
+    if (protoProfile !== defaultProfile && !protoProfile.includes(storage_url)) {
+        user.value.url_photo_profile = `${storage_url}${protoProfile}`;
+    } else {
+        user.value.url_photo_profile = protoProfile;
+    }
     urlPhotoProfile.value = api_url + '/users/' + user.value.id + '/photoprofile';
 });
 

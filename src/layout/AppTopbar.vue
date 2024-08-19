@@ -1,13 +1,24 @@
 <script setup>
 import { useLayout } from '@/layout/composables/layout';
+import { useAuthStore } from '@/stores/authStore';
+import { ref } from 'vue';
 import { useRouter } from 'vue-router';
 import AppConfigurator from './AppConfigurator.vue';
 
 const router = useRouter();
+const authStore = useAuthStore();
+
+const logoutDialog = ref(false);
 const { onMenuToggle, toggleDarkMode, isDarkTheme } = useLayout();
 
 const goToProfile = () => {
     router.push({ name: 'profile' });
+};
+const confirmLogout = () => {
+    logoutDialog.value = true;
+};
+const logout = async () => {
+    await authStore.logout();
 };
 </script>
 
@@ -71,16 +82,29 @@ const goToProfile = () => {
                         <i class="pi pi-calendar"></i>
                         <span>Calendar</span>
                     </button>
-                    <button type="button" class="layout-topbar-action">
-                        <i class="pi pi-inbox"></i>
-                        <span>Messages</span>
-                    </button>
                     <button @click="goToProfile()" type="button" class="layout-topbar-action">
                         <i class="pi pi-user"></i>
                         <span>Perfil</span>
+                    </button>
+                    <button @click="confirmLogout()" type="button" class="layout-topbar-action">
+                        <i class="pi pi-sign-out"></i>
+                        <span>Salir</span>
                     </button>
                 </div>
             </div>
         </div>
     </div>
+    <Dialog v-model:visible="logoutDialog" :style="{ width: '450px' }" header="Cerrar Sesión" :modal="true">
+        <div class="flex items-center gap-4">
+            <i class="pi pi-exclamation-triangle !text-3xl" />
+            <span>
+                Deseas cerrar sesión <b>{{ authStore.getUser?.name || 'Usuario' }}</b
+                >?
+            </span>
+        </div>
+        <template #footer>
+            <Button label="No" icon="pi pi-times" text @click="logoutDialog = false" />
+            <Button label="Sí" icon="pi pi-check" @click="logout" />
+        </template>
+    </Dialog>
 </template>

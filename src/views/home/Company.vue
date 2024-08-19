@@ -1,5 +1,5 @@
 <script setup>
-import { useAuthStore } from '@/stores/auth';
+import { useAuthStore } from '@/stores/authStore';
 import { useCompaniesStore } from '@/stores/companies';
 import { useToast } from 'primevue/usetoast';
 import { onMounted, ref, watch } from 'vue';

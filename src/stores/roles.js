@@ -8,6 +8,11 @@ export const useRolesStore = defineStore('rolesStore', {
         msg: {},
         loading: false
     }),
+    getters: {
+        getRolesComboBox(state) {
+            return state.roles;
+        }
+    },
     actions: {
         async getRoles() {
             try {
@@ -22,7 +27,7 @@ export const useRolesStore = defineStore('rolesStore', {
             }
             return this.roles;
         },
-        async getRolesComboBox() {
+        async fetchRolesComboBox() {
             try {
                 const { data } = await getRoles();
                 const roles = data.map((role) => {

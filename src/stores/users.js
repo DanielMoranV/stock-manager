@@ -1,45 +1,58 @@
-import { createUser, deleteUser, getUser, getUsers, updateProfileUser, updateUser, uploadUsers } from '@/api';
+import { createUser, deleteUser, fetchUsers, getUser, updateProfileUser, updateUser, uploadUsers } from '@/api';
 import cache from '@/utils/cache';
-import { handleApiRequest } from '@/utils/handleApiRequest';
 import { defineStore } from 'pinia';
 
 export const useUsersStore = defineStore('userStore', {
     state: () => ({
         users: cache.getItem('users'),
-        user: null,
+        user: cache.getItem('user'),
         msg: {},
         status: null,
         loading: false
     }),
+    getters: {
+        getUsers(state) {
+            return state.users;
+        }
+    },
     actions: {
-        async getUsers() {
-            const data = await handleApiRequest(getUsers(), 'users', 'users', this);
-            if (data) {
+        async fetchUsers() {
+            try {
+                const { data } = await fetchUsers();
+                cache.setItem('users', data);
                 data.forEach((user) => {
                     if (!user.role) {
                         user.role = { name: 'No Asignado' };
                     }
+
                     if (!user.company) {
                         user.company = { company_name: 'No Asignado' };
                     }
                 });
                 this.users = data;
+                this.loading = true;
+            } catch (error) {
+                this.msg = error.message;
+                this.users = null;
             }
             return this.users;
         },
-
         async createUser(payload) {
-            payload.password = payload.dni;
-            payload.password_confirmation = payload.dni;
-            payload.role = payload.role.name;
-            const data = await handleApiRequest(() => createUser(payload), null, 'user', this);
-            if (data) {
+            try {
+                payload.password = payload.dni;
+                payload.password_confirmation = payload.dni;
+                payload.role = payload.role.name;
+                const { data } = await createUser(payload);
                 const user = await getUser(data.id);
                 this.user = user.data;
+            } catch (error) {
+                this.msg = error.message;
+                this.user = null;
+                this.status = error.status_code;
+                return this.status;
             }
             return this.user;
         },
-
         async uploadUsers(payload) {
             const dataUsers = payload.map((user) => ({
                 dni: user.dni,
@@ -52,19 +65,57 @@ export const useUsersStore = defineStore('userStore', {
             }));
 
             const requestData = { users: dataUsers };
-            return await handleApiRequest(() => uploadUsers(requestData), null, null, this);
-        },
 
+            try {
+                const { data } = await uploadUsers(requestData);
+                //this.users.push(...data.success);
+                this.msg = data.message;
+                return data;
+            } catch (error) {
+                this.msg = error.message;
+                this.users = null;
+                this.status = error.status_code;
+                return this.status;
+            }
+        },
         async updateUser(payload, id) {
-            return await handleApiRequest(() => updateUser(payload, id), null, 'user', this);
+            try {
+                const { data } = await updateUser(payload, id);
+                cache.setItem('user', data);
+                this.user = data;
+                return this.user;
+            } catch (error) {
+                this.msg = error.message;
+                this.status = error.status_code;
+                return this.status;
+            }
         },
-
         async updateProfileUser(payload, id) {
-            return await handleApiRequest(() => updateProfileUser(payload, id), null, 'user', this);
+            try {
+                const data = await updateProfileUser(payload, id);
+                cache.setItem('user', data);
+                this.user = data;
+            } catch (error) {
+                this.msg = error.message;
+                this.status = error.status_code;
+                return this.status;
+            }
         },
-
         async deleteUser(id) {
-            return await handleApiRequest(() => deleteUser(id), null, null, this);
+            try {
+                const response = await deleteUser(id);
+                if (response.success) {
+                    // Eliminar el usuario del estado local
+                    this.users = this.users.filter((user) => user.id !== id);
+                    // Actualizar el caché con la lista de usuarios actualizada
+                    cache.setItem('users', this.users);
+                }
+                return response;
+            } catch (error) {
+                this.msg = error.message;
+                this.status = error.status_code;
+                return { success: false, status: this.status };
+            }
         }
     }
 });

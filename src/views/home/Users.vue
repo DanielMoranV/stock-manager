@@ -204,72 +204,107 @@ const confirmDeleteSelected = () => {
 
 // Eliminar usuarios seleccionados
 const deleteSelectedUsers = async () => {
+    if (!selectedUsers.value || selectedUsers.value.length === 0) {
+        toast.add({ severity: 'warn', summary: 'Advertencia', detail: 'No hay usuarios seleccionados', life: 3000 });
+        return;
+    }
+
     const selectedUserIds = selectedUsers.value.map((user) => user.id);
     const successfulDeletes = [];
     const failedDeletes = [];
 
-    for (const id of selectedUserIds) {
-        try {
-            const response = await userStore.deleteUser(id);
-            if (response.success) {
-                successfulDeletes.push(id);
-            } else {
+    await Promise.all(
+        selectedUserIds.map(async (id) => {
+            try {
+                const response = await userStore.deleteUser(id);
+                if (response.success) {
+                    successfulDeletes.push(id);
+                } else {
+                    failedDeletes.push(id);
+                }
+            } catch (error) {
                 failedDeletes.push(id);
             }
-        } catch (error) {
-            failedDeletes.push(id);
-        }
-    }
+        })
+    );
 
     // Filtrar la lista de usuarios en el frontend
-    users.value = users.value.filter((val) => !successfulDeletes.includes(val.id));
+    users.value = users.value.filter((user) => !successfulDeletes.includes(user.id));
     deleteUsersDialog.value = false;
-    selectedUsers.value = null;
+    selectedUsers.value = [];
 
     if (failedDeletes.length > 0) {
-        toast.add({ severity: 'error', summary: 'Error', detail: 'Algunos usuarios no pudieron ser eliminados', life: 3000 });
+        toast.add({ severity: 'error', summary: 'Error', detail: `${failedDeletes.length} usuarios no pudieron ser eliminados`, life: 3000 });
     } else {
-        toast.add({ severity: 'success', summary: 'Éxito', detail: 'Usuarios Eliminados', life: 3000 });
+        toast.add({ severity: 'success', summary: 'Éxito', detail: 'Usuarios eliminados exitosamente', life: 3000 });
     }
 };
+
 // Ciclos de vida del componente
 onBeforeMount(() => {
     initFilters();
 });
 
 onMounted(async () => {
-    loadingUsers.value = true;
-    await userStore.getUsers().then((data) => (users.value = data));
-    await rolesStore.getRolesComboBox().then((data) => (roles.value = data));
-    loadingUsers.value = false;
-});
+    try {
+        loadingUsers.value = true;
 
+        // Carga usuarios si no están en la tienda
+        users.value = userStore.getUsers || (await userStore.fetchUsers());
+
+        // Carga roles si no están en la tienda
+        roles.value = rolesStore.getRolesComboBox || (await rolesStore.fetchRolesComboBox());
+    } catch (error) {
+        console.error('Error al cargar los datos:', error);
+    } finally {
+        loadingUsers.value = false;
+    }
+});
 // Importar Datos Excel
 const onUpload = async (event) => {
     const file = event.files[0];
-    if (file && file.name.endsWith('.xlsx')) {
-        const workbook = new ExcelJS.Workbook();
-        try {
-            await workbook.xlsx.load(file);
-            const worksheet = workbook.worksheets[0];
-            const rows = worksheet.getSheetValues();
 
-            // Procesar los datos del archivo
-            const usersData = rows.slice(2).map((row) => ({
-                dni: row[1],
-                name: row[2],
-                phone: row[3],
-                email: row[4],
-                role: row[5]
-            }));
-            // Enviar los datos a la base de datos
-            await uploadUsers(usersData);
-        } catch (error) {
-            console.error('Error al procesar el archivo', error);
-            toast.add({ severity: 'error', summary: 'Error', detail: 'Error al procesar el archivo', life: 3000 });
-        }
-    } else {
+    if (!file) {
+        toast.add({ severity: 'error', summary: 'Error', detail: 'No se seleccionó ningún archivo', life: 3000 });
+        return;
+    }
+
+    if (!file.name.endsWith('.xlsx')) {
         toast.add({ severity: 'error', summary: 'Error', detail: 'Formato de archivo no válido', life: 3000 });
+        return;
+    }
+
+    const workbook = new ExcelJS.Workbook();
+    try {
+        await workbook.xlsx.load(file);
+        const worksheet = workbook.worksheets[0];
+        const rows = worksheet.getSheetValues();
+
+        // Verificar si hay datos suficientes en el archivo
+        if (rows.length < 3) {
+            toast.add({ severity: 'error', summary: 'Error', detail: 'El archivo no contiene suficientes datos', life: 3000 });
+            return;
+        }
+
+        // Procesar los datos del archivo
+        const usersData = rows.slice(2).map((row) => ({
+            dni: row[1],
+            name: row[2],
+            phone: row[3],
+            email: row[4],
+            role: row[5]
+        }));
+
+        // Validar datos procesados antes de enviarlos
+        if (usersData.some((user) => !user.dni || !user.name || !user.email || !user.role)) {
+            toast.add({ severity: 'error', summary: 'Error', detail: 'El archivo contiene datos incompletos', life: 3000 });
+            return;
+        }
+
+        // Enviar los datos a la base de datos
+        await uploadUsers(usersData);
+    } catch (error) {
+        toast.add({ severity: 'error', summary: 'Error', detail: 'Error al procesar el archivo', life: 3000 });
     }
 };
 
@@ -278,18 +313,35 @@ const uploadUsers = async (usersData) => {
     try {
         // Enviar los datos al backend
         const response = await userStore.uploadUsers(usersData);
-        await userStore.getUsers().then((data) => (users.value = data));
-        if (response.success.length != 0) {
-            response.success.length;
-            toast.add({ severity: 'success', summary: 'Éxito', detail: response.success.length + ' Datos importados correctamente', life: 3000 });
+
+        // Actualizar la lista de usuarios después de la carga
+        users.value = await userStore.fetchUsers();
+
+        // Manejar notificaciones para éxito y errores
+        if (response.success.length > 0) {
+            toast.add({
+                severity: 'success',
+                summary: 'Éxito',
+                detail: `${response.success.length} datos importados correctamente`,
+                life: 3000
+            });
         }
-        if (response.errors.length != 0) {
-            response.success.length;
-            toast.add({ severity: 'error', summary: 'Éxito', detail: response.errors.length + ' Datos importados incorrectamente', life: 3000 });
+
+        if (response.errors.length > 0) {
+            toast.add({
+                severity: 'error',
+                summary: 'Error',
+                detail: `${response.errors.length} datos no pudieron ser importados`,
+                life: 3000
+            });
         }
-        //users.value.push(...response.success);
     } catch (error) {
-        toast.add({ severity: 'error', summary: 'Error', detail: 'Error al importar los datos', life: 3000 });
+        toast.add({
+            severity: 'error',
+            summary: 'Error',
+            detail: 'Error al importar los datos',
+            life: 3000
+        });
     } finally {
         loadingUsers.value = false;
     }

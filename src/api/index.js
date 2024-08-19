@@ -8,7 +8,7 @@ export const refresh = () => axios.post('/auth/refresh');
 export const me = () => axios.post('/auth/me');
 
 // Users
-export const getUsers = () => axios.get('/users');
+export const fetchUsers = () => axios.get('/users');
 export const getUser = (id) => axios.get(`/users/${id}`);
 export const createUser = (payload) => axios.post('/users', payload);
 export const updateUser = (payload, id) => axios.put(`/users/${id}`, payload);

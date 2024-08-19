@@ -1,5 +1,5 @@
 <script setup>
-import { useAuthStore } from '@/stores/auth';
+import { useAuthStore } from '@/stores/authStore';
 import { useProductsStore } from '@/stores/products';
 import { exportToExcel } from '@/utils/excelUtils';
 import { capitalizeName, findIndexById } from '@/utils/validationUtils';

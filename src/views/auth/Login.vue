@@ -1,15 +1,14 @@
 <script setup>
 import FloatingConfigurator from '@/components/FloatingConfigurator.vue';
+import { useAuthStore } from '@/stores/authStore';
 import { useToast } from 'primevue/usetoast';
 import { reactive, ref } from 'vue';
 import { useRouter } from 'vue-router';
-import { useAuthStore } from '../../stores/auth';
 
 const authStore = useAuthStore();
 
 const router = useRouter();
 const toast = useToast();
-const isLoading = ref(false);
 
 const dataUser = reactive({
     dni: '',
@@ -19,43 +18,38 @@ const dataUser = reactive({
 const checked = ref(false);
 
 const login = async () => {
-    isLoading.value = true;
     // Verificar si el correo electrónico y la contraseña son campos requeridos
     if (!dataUser.dni || !dataUser.password) {
-        isLoading.value = false;
         return toast.add({ severity: 'warn', summary: 'Por favor complete los campos requeridos', life: 3000 });
     }
 
     // Verificar si los campos contienen espacios en blanco
     if (/\s/.test(dataUser.dni) || /\s/.test(dataUser.password)) {
-        isLoading.value = false;
         return toast.add({ severity: 'warn', summary: 'Los campos no pueden contener espacios en blanco', life: 3000 });
     }
     // Verificar si la contraseña tiene al menos 6 caracteres
     if (dataUser.password.length < 6) {
-        isLoading.value = false;
         return toast.add({ severity: 'warn', summary: 'La contraseña debe tener al menos 6 caracteres', life: 3000 });
     }
     await authStore.login(dataUser);
-    if (authStore.session) {
+    if (authStore.auth.session) {
         // Mostrar el toast
-        authStore.me();
+
         toast.add({ severity: 'success', summary: 'Validación Correcta Bienvenido', life: 3000 });
+        authStore.me();
 
         setTimeout(() => router.push('/dashboard'), 2000);
     } else {
-        switch (authStore.msg) {
+        switch (authStore.auth.error) {
             case 'Unauthorized':
                 toast.add({ severity: 'warn', summary: 'Credenciales incorrectas', life: 3000 });
                 break;
             default:
-                console.log(authStore.msg);
+                console.log(authStore.error);
                 toast.add({ severity: 'error', summary: 'Ocurrió un error en el servidor intentelo más tarde.', life: 3000 });
                 break;
         }
     }
-
-    isLoading.value = authStore.session;
 };
 </script>
 
@@ -92,7 +86,7 @@ const login = async () => {
                         <InputText id="dni" type="text" placeholder="Documento Identidad" class="w-full md:w-[30rem] mb-8" v-model="dataUser.dni" />
 
                         <label for="password1" class="block text-surface-900 dark:text-surface-0 font-medium text-xl mb-2">Contraseña</label>
-                        <Password id="password1" v-model="dataUser.password" placeholder="Contraseña" :toggleMask="false" class="mb-4" fluid :feedback="false"></Password>
+                        <Password id="password1" v-model="dataUser.password" placeholder="Contraseña" :toggleMask="true" class="mb-4" fluid :feedback="false"></Password>
 
                         <!-- <div class="flex items-center justify-between mt-2 mb-8 gap-8">
                             <div class="flex items-center">
@@ -102,7 +96,7 @@ const login = async () => {
                             <span class="font-medium no-underline ml-2 text-right cursor-pointer text-primary">Forgot password?</span>
                         </div> -->
                         <Toast />
-                        <Button v-if="!isLoading" label="Iniciar Sesión" class="w-full p-3 text-xl" @click="login"></Button>
+                        <Button v-if="!authStore.auth.loading" label="Iniciar Sesión" class="w-full p-3 text-xl" @click="login"></Button>
                         <div v-else class="flex justify-content-center mt-8">
                             <ProgressSpinner style="width: 50px; height: 50px" strokeWidth="8" fill="var(--surface-ground)" animationDuration=".5s" aria-label="Custom ProgressSpinner" />
                         </div>

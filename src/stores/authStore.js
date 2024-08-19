@@ -6,62 +6,78 @@ import { defineStore } from 'pinia';
 export const useAuthStore = defineStore('authStore', {
     state: () => ({
         user: cache.getItem('user'),
-        msg: {},
+        token: cache.getItem('token'),
+        error: {},
         role: 'Invitado',
-        returnUrl: '',
         session: false,
         loading: false
     }),
     getters: {
-        token(state) {
-            if (state.user) {
-                return state.user.access_token;
+        getToken(state) {
+            if (state.token) {
+                return state.token;
             }
+        },
+        auth() {
+            const response = {
+                loading: this.loading,
+                session: this.session,
+                error: this.error
+            };
+            return response;
+        },
+        getUser(state) {
+            return state.user;
         }
     },
     actions: {
         async login(payload) {
             try {
-                const data = await login(payload);
-                cache.setItem('user', data);
-                this.user = data;
-                this.session = true;
                 this.loading = true;
+                const { access_token } = await login(payload);
+                cache.setItem('token', access_token);
+                this.token = access_token;
+                this.session = true;
             } catch (error) {
-                this.msg = error.message;
+                this.error = error.message;
                 this.user = null;
                 this.session = false;
+            } finally {
+                this.loading = false;
             }
         },
 
         async logout() {
             try {
                 const { message } = await logout();
-                this.msg = message;
+                this.error = message;
                 cache.cleanAll();
                 this.user = null;
                 this.session = false;
                 router.push({ name: 'login' });
                 //return this.msg;
             } catch (error) {
-                this.msg = error.message;
-                return this.msg;
+                this.error = error.message;
+                return this.error;
             }
         },
         async me() {
             try {
                 const { data } = await me();
-                cache.setItem('user', data);
-                this.user = data;
+                cache.setItem('user', data.user);
+                this.user = data.user;
                 this.session = true;
-                this.loading = true;
                 return this.user;
             } catch (error) {
-                this.msg = error.message;
+                this.error = error.message;
                 this.user = null;
                 this.session = false;
-                return this.msg;
+                return this.error;
             }
+        },
+        async updateUser(payload) {
+            this.user = payload;
+            cache.setItem('user', payload);
         }
     }
 });
