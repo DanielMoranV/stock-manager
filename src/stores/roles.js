@@ -14,7 +14,7 @@ export const useRolesStore = defineStore('rolesStore', {
         }
     },
     actions: {
-        async getRoles() {
+        async fetchRoles() {
             try {
                 const data = await getRoles();
                 const roles = data.roles;
@@ -31,7 +31,7 @@ export const useRolesStore = defineStore('rolesStore', {
             try {
                 const { data } = await getRoles();
                 const roles = data.map((role) => {
-                    return { label: role.name.toUpperCase(), value: role.name };
+                    return { label: role.name.toUpperCase(), value: role.id };
                 });
                 cache.setItem('roles', roles);
                 this.roles = roles;

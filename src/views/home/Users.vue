@@ -108,12 +108,6 @@ const openNew = () => {
 const hideDialog = () => {
     userDialog.value = false;
     submitted.value = false;
-    user.value = {};
-    users.value = userStore.getUsers;
-
-    console.log(user.value);
-    console.log(users.value);
-    console.log(userStore.getUsers);
 };
 
 // Guardar usuario
@@ -148,16 +142,43 @@ const saveUser = async () => {
 
 // Actualizar usuario
 const updateUser = async () => {
-    await userStore.updateUser(user.value, user.value.id);
-    const payload = { dni: user.value.dni, role_name: user.value.role.name };
-    await rolesStore.assignRole(payload);
+    try {
+        // Actualiza el usuario en el store
+        await userStore.updateUser(user.value, user.value.id);
 
-    const userIndex = findIndexById(user.value.id, users.value);
-    users.value[userIndex] = user.value;
+        // Encuentra el nombre del rol
+        const role = roles.value.find((role) => role.value === user.value.role.id);
 
-    userStore.updateListUser(user.value, user.value.id);
+        // Verifica si se encontró el rol
+        if (!role) {
+            throw new Error('Rol no encontrado');
+        }
 
-    toast.add({ severity: 'success', summary: 'Éxito', detail: 'Usuario actualizado', life: 3000 });
+        // Prepara el payload para asignar el rol
+        const payload = { dni: user.value.dni, role_name: role.label };
+        await rolesStore.assignRole(payload);
+
+        // Actualiza el nombre del rol en el usuario
+        user.value.role.name = role.label;
+
+        // Actualiza la lista de usuarios
+        const userIndex = findIndexById(user.value.id, users.value);
+        if (userIndex !== -1) {
+            users.value[userIndex] = { ...user.value };
+        } else {
+            throw new Error('Usuario no encontrado en la lista');
+        }
+
+        // Actualiza el usuario en el store
+        await userStore.updateListUser(user.value, user.value.id);
+
+        // Muestra un mensaje de éxito
+        toast.add({ severity: 'success', summary: 'Éxito', detail: 'Usuario actualizado', life: 3000 });
+    } catch (error) {
+        // Maneja cualquier error
+        console.error('Error al actualizar el usuario:', error);
+        toast.add({ severity: 'error', summary: 'Error', detail: error.message, life: 3000 });
+    }
 };
 
 // Crear usuario
@@ -446,7 +467,7 @@ watch(() => user.value.phone, validatePhoneField);
             </div>
             <div class="mb-3">
                 <label for="rol" class="block font-bold mb-1">Roles</label>
-                <Select id="rol" v-model="user.role.name" :options="roles" optionValue="value" optionLabel="label" placeholder="Selecciona Rol" fluid></Select>
+                <Select id="rol" v-model="user.role.id" :options="roles" optionValue="value" optionLabel="label" placeholder="Selecciona Rol" fluid></Select>
             </div>
             <template #footer>
                 <Button label="Cancelar" icon="pi pi-times" text @click="hideDialog" />

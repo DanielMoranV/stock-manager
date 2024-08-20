@@ -1,8 +1,9 @@
 <script setup>
-import AppConfig from '@/layout/AppConfig.vue';
+import FloatingConfigurator from '@/components/FloatingConfigurator.vue';
 </script>
 
 <template>
+    <FloatingConfigurator />
     <div class="surface-ground flex align-items-center justify-content-center min-h-screen min-w-screen overflow-hidden">
         <div class="flex flex-column align-items-center justify-content-center">
             <img src="/demo/images/error/logo-error.svg" alt="Sakai logo" class="mb-5 w-6rem flex-shrink-0" />
@@ -24,5 +25,4 @@ import AppConfig from '@/layout/AppConfig.vue';
             </div>
         </div>
     </div>
-    <AppConfig simple />
 </template>

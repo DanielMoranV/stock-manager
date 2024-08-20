@@ -165,6 +165,7 @@ onMounted(() => {
         user.value.url_photo_profile = protoProfile;
     }
     urlPhotoProfile.value = api_url + '/users/' + user.value.id + '/photoprofile';
+    console.log(user.value);
 });
 
 // Watchers
