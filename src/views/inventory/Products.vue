@@ -160,7 +160,8 @@ onMounted(async () => {
     await productsStore.getProducts().then((data) => (products.value = data));
     await productsStore.getCategoriesComboBox().then((data) => (categories.value = data));
     await productsStore.getUnitsComboBox().then((data) => (units.value = data));
-    userId.value = await authStore.user.user.id;
+    const data = authStore.getUser;
+    userId.value = data.id;
     loadingProducts.value = false;
 });
 

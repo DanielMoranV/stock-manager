@@ -92,7 +92,7 @@ const updateUser = async () => {
     };
 
     try {
-        const response = await userStore.updateUser(payload, user.value.id);
+        const response = await authStore.updateProfile(payload, user.value.id);
         authStore.updateUser(user.value);
         handleApiResponse(response, toast);
     } catch (error) {
@@ -110,7 +110,7 @@ const updatePassword = async () => {
     const confirmPassword = confirmPasswordInput.value;
     if (password === confirmPassword) {
         try {
-            const response = await userStore.updateUser({ password: password }, user.value.id);
+            const response = await authStore.updateProfile({ password: password }, user.value.id);
             authStore.updateUser(user.value);
             handleApiResponse(response, toast);
         } catch (error) {
@@ -152,7 +152,7 @@ const onUpload = async (request) => {
 };
 
 // Cargar datos del usuario
-onMounted(async () => {
+onMounted(() => {
     user.value = authStore.getUser;
 
     const defaultProfile = '/images/profile.png';

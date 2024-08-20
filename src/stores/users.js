@@ -90,6 +90,21 @@ export const useUsersStore = defineStore('userStore', {
                 return this.status;
             }
         },
+        async updateListUser(payload, id) {
+            // Encuentra el índice del usuario en la lista de usuarios almacenada en `this.users`
+            const userIndex = this.users.findIndex((user) => user.id === id);
+
+            if (userIndex !== -1) {
+                // Actualiza el usuario en `this.users` con los nuevos datos de `payload`
+                this.users[userIndex] = {
+                    ...this.users[userIndex], // Mantenemos las propiedades existentes
+                    ...payload // Sobrescribimos solo las propiedades que están en `payload`
+                };
+
+                // También puedes actualizar el caché si es necesario
+                cache.setItem('users', this.users);
+            }
+        },
         async updateProfileUser(payload, id) {
             try {
                 const data = await updateProfileUser(payload, id);

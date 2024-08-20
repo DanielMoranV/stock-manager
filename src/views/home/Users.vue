@@ -108,6 +108,12 @@ const openNew = () => {
 const hideDialog = () => {
     userDialog.value = false;
     submitted.value = false;
+    user.value = {};
+    users.value = userStore.getUsers;
+
+    console.log(user.value);
+    console.log(users.value);
+    console.log(userStore.getUsers);
 };
 
 // Guardar usuario
@@ -148,6 +154,8 @@ const updateUser = async () => {
 
     const userIndex = findIndexById(user.value.id, users.value);
     users.value[userIndex] = user.value;
+
+    userStore.updateListUser(user.value, user.value.id);
 
     toast.add({ severity: 'success', summary: 'Éxito', detail: 'Usuario actualizado', life: 3000 });
 };

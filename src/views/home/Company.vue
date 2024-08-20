@@ -88,10 +88,11 @@ const updateCompany = async () => {
 
     try {
         const response = await companiesStore.updateCompany(payload, company.value.id);
+        authStore.updateUser(payload);
         handleApiResponse(response, toast);
     } catch (error) {
         console.error(error);
-        toast.add({ severity: 'error', summary: 'Error', detail: 'Error al guardar usuario', life: 3000 });
+        toast.add({ severity: 'error', summary: 'Error', detail: 'Error al guardar usuario:', life: 3000 });
     } finally {
         isLoading.value = false;
     }
@@ -99,7 +100,7 @@ const updateCompany = async () => {
 
 // Manejar carga de foto de perfil
 const beforeUpload = (request) => {
-    request.xhr.setRequestHeader('Authorization', 'Bearer ' + authStore.user.access_token);
+    request.xhr.setRequestHeader('Authorization', 'Bearer ' + authStore.getToken);
     return request;
 };
 
@@ -108,6 +109,12 @@ const onUpload = async (request) => {
         const response = typeof request.xhr.response === 'string' ? JSON.parse(request.xhr.response) : request.xhr.response;
         const urlPhotoProfile = response.data.logo_path;
         company.value.logo_path = storage_url + urlPhotoProfile;
+        const payload = {
+            company: {
+                ...company.value
+            }
+        };
+        authStore.updateUser(payload);
         toast.add({ severity: 'success', summary: 'Foto de perfil actualizada correctamente', life: 4000 });
     } catch (error) {
         console.error('Error al procesar la respuesta', error);
@@ -116,11 +123,19 @@ const onUpload = async (request) => {
 };
 
 // Cargar datos del usuario
-onMounted(async () => {
-    const data = await authStore.me();
-    company.value = data.user.company;
-    company.value.logo_path = storage_url + company.value.logo_path;
+onMounted(() => {
+    const user = authStore.getUser;
+    company.value = user.company;
+    const defaultProfile = '/images/profile.png';
 
+    const logoPath = company.value.logo_path ?? defaultProfile;
+
+    // Si el perfil no contiene la URL de almacenamiento y no es la imagen predeterminada
+    if (logoPath !== defaultProfile && !logoPath.includes(storage_url)) {
+        company.value.logo_path = `${storage_url}${logoPath}`;
+    } else {
+        company.value.logo_path = logoPath;
+    }
     urlPhotoProfile.value = api_url + '/companies/' + company.value.id + '/logo';
 });
 

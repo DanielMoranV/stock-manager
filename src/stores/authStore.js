@@ -5,7 +5,7 @@ import { defineStore } from 'pinia';
 
 export const useAuthStore = defineStore('authStore', {
     state: () => ({
-        user: cache.getItem('user'),
+        user: cache.getItem('currentUser'),
         token: cache.getItem('token'),
         error: {},
         role: 'Invitado',
@@ -64,7 +64,7 @@ export const useAuthStore = defineStore('authStore', {
         async me() {
             try {
                 const { data } = await me();
-                cache.setItem('user', data.user);
+                cache.setItem('currentUser', data.user);
                 this.user = data.user;
                 this.session = true;
                 return this.user;
@@ -76,8 +76,23 @@ export const useAuthStore = defineStore('authStore', {
             }
         },
         async updateUser(payload) {
-            this.user = payload;
-            cache.setItem('user', payload);
+            this.user = {
+                ...this.user,
+                ...payload
+            };
+            cache.setItem('currentUser', this.user);
+        },
+        async updateProfile(payload, id) {
+            try {
+                const { data } = await updateUser(payload, id);
+                cache.setItem('currentUser', data);
+                this.user = data;
+                return this.user;
+            } catch (error) {
+                this.msg = error.message;
+                this.status = error.status_code;
+                return this.status;
+            }
         }
     }
 });
