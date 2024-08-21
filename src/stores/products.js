@@ -1,24 +1,42 @@
 import { createCategory, createProduct, deleteCategory, deleteProduct, getCategories, getCategory, getProduct, getProducts, getUnit, getUnits, updateCategory, updateProduct, uploadProducts } from '@/api';
 import cache from '@/utils/cache';
 import { defineStore } from 'pinia';
-import { useCrudStore } from './crudStore.';
 
 export const useProductsStore = defineStore('productStore', {
     state: () => ({
-        ...useCrudStore().state(),
         products: cache.getItem('products'),
         product: cache.getItem('product'),
         categories: cache.getItem('categories'),
+        categoriesCbx: cache.getItem('categoriesCbx'),
+        unitsCbx: cache.getItem('unitsCbx'),
         category: cache.getItem('category'),
         units: cache.getItem('units'),
         unit: cache.getItem('unit'),
-        msg: ''
+        msg: '',
+        status: null,
+        loading: false
     }),
 
+    getters: {
+        getProducts(state) {
+            return state.products;
+        },
+        getCategories(state) {
+            return state.categories;
+        },
+        getUnits(state) {
+            return state.units;
+        },
+        getCategoriesCbx(state) {
+            return state.categoriesCbx;
+        },
+        getUnitsCbx(state) {
+            return state.unitsCbx;
+        }
+    },
+
     actions: {
-        ...useCrudStore().actions,
         async createCategory(payload) {
-            return await this.createRecord('categories', payload);
             try {
                 const { data } = await createCategory(payload);
                 cache.setItem('category', data);
@@ -31,7 +49,6 @@ export const useProductsStore = defineStore('productStore', {
             }
         },
         async updateCategory(payload, id) {
-            return await this.updateRecord('categories', payload, id);
             try {
                 const { data } = await updateCategory(payload, id);
                 cache.setItem('category', data);
@@ -44,7 +61,6 @@ export const useProductsStore = defineStore('productStore', {
             }
         },
         async deleteCategory(id) {
-            return await this.deleteRecord('categories', id);
             try {
                 const response = await deleteCategory(id);
                 return response;
@@ -54,11 +70,7 @@ export const useProductsStore = defineStore('productStore', {
                 return this.status;
             }
         },
-        async getCategories() {
-            const response = await this.fetchRecords('categories');
-            cache.setItem('categories', response);
-            console.log(response);
-            return response;
+        async fetchCategories() {
             try {
                 const { data } = await getCategories();
                 cache.setItem('categories', data);
@@ -72,45 +84,42 @@ export const useProductsStore = defineStore('productStore', {
                 return this.categories;
             }
         },
-        async getCategory(id) {
-            return await this.fetchRecord('categories', id);
-        },
-        async getCategoriesComboBox() {
+        async fetchCategoriesComboBox() {
             try {
                 const { data } = await getCategories();
                 const categories = data.map((category) => {
                     return { label: category.name, value: category.id };
                 });
-                cache.setItem('categories', data);
-                this.categories = categories;
+                cache.setItem('categoriesCbx', data);
+                this.categoriesCbx = categories;
             } catch (error) {
                 this.msg = error.message;
-                this.categories = null;
+                this.categoriesCbx = null;
                 console.log(error);
             } finally {
                 this.loading = false;
-                return this.categories;
+                return this.categoriesCbx;
             }
         },
 
-        async getUnitsComboBox() {
+        async fetchUnitsComboBox() {
             try {
                 const { data } = await getUnits();
                 const units = data.map((unit) => {
                     return { label: unit.symbol.toUpperCase(), value: unit.id };
                 });
-                cache.setItem('units', data);
-                this.units = units;
+                cache.setItem('unitsCbx', data);
+                this.unitsCbx = units;
             } catch (error) {
                 this.msg = error.message;
-                this.units = null;
+                this.unitsCbx = null;
                 console.log(error);
             } finally {
                 this.loading = false;
-                return this.units;
+                return this.unitsCbx;
             }
         },
-        async getUnits() {
+        async fetchUnits() {
             try {
                 const { data } = await getUnits();
                 cache.setItem('unit', data);
@@ -123,7 +132,7 @@ export const useProductsStore = defineStore('productStore', {
                 return this.units;
             }
         },
-        async getUnit() {
+        async fetchUnit() {
             try {
                 const { data } = await getUnit();
                 cache.setItem('unit', data);
@@ -136,7 +145,7 @@ export const useProductsStore = defineStore('productStore', {
                 return this.unit;
             }
         },
-        async getCategory() {
+        async fetchCategory() {
             try {
                 const { data } = await getCategory();
                 cache.setItem('category', data);
@@ -149,7 +158,7 @@ export const useProductsStore = defineStore('productStore', {
                 return this.category;
             }
         },
-        async getProducts() {
+        async fetchProducts() {
             try {
                 const { data } = await getProducts();
                 cache.setItem('products', data);
@@ -162,7 +171,7 @@ export const useProductsStore = defineStore('productStore', {
                 return this.products;
             }
         },
-        async getProduct(id) {
+        async fetchProduct(id) {
             try {
                 const { data } = await getProduct(id);
                 cache.setItem('product', data);

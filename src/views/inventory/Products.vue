@@ -157,9 +157,12 @@ onBeforeMount(() => {
 
 onMounted(async () => {
     loadingProducts.value = true;
-    await productsStore.getProducts().then((data) => (products.value = data));
-    await productsStore.getCategoriesComboBox().then((data) => (categories.value = data));
-    await productsStore.getUnitsComboBox().then((data) => (units.value = data));
+    products.value = productsStore.getProducts || (await productsStore.fetchProducts());
+
+    categories.value = productsStore.getCategoriesCbx || (await productsStore.fetchCategoriesComboBox());
+
+    units.value = productsStore.getUnitsCbx || (await productsStore.fetchUnitsComboBox());
+
     const data = authStore.getUser;
     userId.value = data.id;
     loadingProducts.value = false;
