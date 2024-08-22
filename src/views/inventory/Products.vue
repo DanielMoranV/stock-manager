@@ -123,11 +123,18 @@ const saveProduct = async () => {
 
 // Actualizar producto
 const updateProduct = async () => {
-    await productsStore.updateProduct(product.value, product.value.id);
-    const productIndex = findIndexById(product.value.id, products.value);
+    try {
+        await productsStore.updateProduct(product.value, product.value.id);
 
-    products.value[productIndex] = product.value;
-    toast.add({ severity: 'success', summary: 'Éxito', detail: 'Productos actualizado', life: 3000 });
+        const productIndex = findIndexById(product.value.id, products.value);
+
+        products.value[productIndex] = product.value;
+
+        productsStore.updateListProducts(product.value, product.value.id);
+        toast.add({ severity: 'success', summary: 'Éxito', detail: 'Productos actualizado', life: 3000 });
+    } catch (error) {
+        toast.add({ severity: 'error', summary: 'Error', detail: `Error al actualizar el producto: ${error.message}`, life: 3000 });
+    }
 };
 
 // Crear producto
@@ -162,6 +169,7 @@ onMounted(async () => {
     categories.value = productsStore.getCategoriesCbx || (await productsStore.fetchCategoriesComboBox());
 
     units.value = productsStore.getUnitsCbx || (await productsStore.fetchUnitsComboBox());
+    console.log(categories.value);
 
     const data = authStore.getUser;
     userId.value = data.id;

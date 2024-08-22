@@ -170,7 +170,7 @@ const updateUser = async () => {
         }
 
         // Actualiza el usuario en el store
-        await userStore.updateListUser(user.value, user.value.id);
+        userStore.updateListUser(user.value, user.value.id);
 
         // Muestra un mensaje de éxito
         toast.add({ severity: 'success', summary: 'Éxito', detail: 'Usuario actualizado', life: 3000 });

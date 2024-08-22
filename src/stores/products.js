@@ -28,6 +28,7 @@ export const useProductsStore = defineStore('productStore', {
             return state.units;
         },
         getCategoriesCbx(state) {
+            console.log(state.categoriesCbx);
             return state.categoriesCbx;
         },
         getUnitsCbx(state) {
@@ -90,7 +91,7 @@ export const useProductsStore = defineStore('productStore', {
                 const categories = data.map((category) => {
                     return { label: category.name, value: category.id };
                 });
-                cache.setItem('categoriesCbx', data);
+                cache.setItem('categoriesCbx', categories);
                 this.categoriesCbx = categories;
             } catch (error) {
                 this.msg = error.message;
@@ -108,7 +109,7 @@ export const useProductsStore = defineStore('productStore', {
                 const units = data.map((unit) => {
                     return { label: unit.symbol.toUpperCase(), value: unit.id };
                 });
-                cache.setItem('unitsCbx', data);
+                cache.setItem('unitsCbx', units);
                 this.unitsCbx = units;
             } catch (error) {
                 this.msg = error.message;
@@ -239,6 +240,16 @@ export const useProductsStore = defineStore('productStore', {
             } finally {
                 this.loading = false;
                 return this.product;
+            }
+        },
+        async updateListProducts(payload, id) {
+            const productIndex = this.products.findIndex((product) => product.id === id);
+            if (productIndex !== -1) {
+                this.products[productIndex] = {
+                    ...this.products[productIndex],
+                    ...payload
+                };
+                cache.setItem('products', this.products);
             }
         },
         async deleteProduct(id) {
