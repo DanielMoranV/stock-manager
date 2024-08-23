@@ -28,7 +28,6 @@ export const useProductsStore = defineStore('productStore', {
             return state.units;
         },
         getCategoriesCbx(state) {
-            console.log(state.categoriesCbx);
             return state.categoriesCbx;
         },
         getUnitsCbx(state) {
@@ -190,16 +189,16 @@ export const useProductsStore = defineStore('productStore', {
                 payload.category_id = payload.category.id;
                 payload.unit_id = payload.unit.id;
                 const { data } = await createProduct(payload);
-                data.category = payload.category;
-                data.unit = payload.unit;
-                cache.setItem('product', data);
+                console.log(data);
                 this.product = data;
+                this.products.push(this.product);
+                cache.setItem('products', this.products);
             } catch (error) {
                 console.log(error);
-                this.msg = error.message;
+                this.msg = error.message || 'Error al crear el usuario';
                 this.product = null;
-            } finally {
-                return this.product;
+                this.status = error.status_code || 500;
+                return this.status;
             }
         },
 

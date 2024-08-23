@@ -142,7 +142,7 @@ const createProduct = async () => {
     product.value.user_id = userId.value;
     const response = await productsStore.createProduct(product.value);
 
-    if (response == '422') {
+    if (response == 422 || response == 500) {
         toast.add({ severity: 'error', summary: 'Error', detail: 'Producto ya registrado, error en validación', life: 3000 });
         isLoading.value = false;
         loadingProducts.value = false;
@@ -152,9 +152,7 @@ const createProduct = async () => {
     }
 
     product.value = response;
-    products.value.push(product.value);
-
-    toast.add({ severity: 'success', summary: 'Éxito', detail: 'Nuevo usuario agregado', life: 3000 });
+    toast.add({ severity: 'success', summary: 'Éxito', detail: 'Nuevo producto agregado', life: 3000 });
 };
 
 // Ciclos de vida del componente
@@ -169,7 +167,6 @@ onMounted(async () => {
     categories.value = productsStore.getCategoriesCbx || (await productsStore.fetchCategoriesComboBox());
 
     units.value = productsStore.getUnitsCbx || (await productsStore.fetchUnitsComboBox());
-    console.log(categories.value);
 
     const data = authStore.getUser;
     userId.value = data.id;

@@ -49,7 +49,7 @@ const validateFields = () => {
 
 // Verificar si el formulario es válido
 const isFormValid = () => {
-    return user.value.name && user.value.name.trim() && user.value.email && user.value.role.name && isDNIValid.value && isEmailValid.value && isPhoneValid.value;
+    return user.value.name && user.value.name.trim() && user.value.email && isDNIValid.value && isEmailValid.value && isPhoneValid.value;
 };
 
 // Manejar entrada de nombre
@@ -97,7 +97,7 @@ const exportExcel = async () => {
 const openNew = () => {
     user.value = {
         role: {
-            name: 'admin'
+            id: 2
         }
     };
     submitted.value = false;
@@ -183,9 +183,13 @@ const updateUser = async () => {
 
 // Crear usuario
 const createUser = async () => {
+    console.log('payload start', user.value);
+    // Encuentra el nombre del rol
+    const role = roles.value.find((role) => role.value === user.value.role.id);
+    user.value.role.name = role.label;
     const response = await userStore.createUser(user.value);
 
-    if (response == '422') {
+    if (response == 422 || response == 500) {
         toast.add({ severity: 'error', summary: 'Error', detail: 'Usuario ya registrado, error en validación', life: 3000 });
         isLoading.value = false;
         loadingUsers.value = false;
@@ -195,8 +199,6 @@ const createUser = async () => {
     }
 
     user.value = response;
-    await rolesStore.assignRole({ dni: user.value.dni, role_name: user.value.role.name });
-    users.value.push(user.value);
 
     toast.add({ severity: 'success', summary: 'Éxito', detail: 'Nuevo usuario agregado', life: 3000 });
 };

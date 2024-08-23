@@ -39,19 +39,37 @@ export const useUsersStore = defineStore('userStore', {
         },
         async createUser(payload) {
             try {
+                // Establecer la contraseña y la confirmación de la contraseña como el DNI
                 payload.password = payload.dni;
                 payload.password_confirmation = payload.dni;
+
+                // Asignar el nombre del rol a partir del objeto de rol
                 payload.role = payload.role.name;
+
+                // Crear el usuario y obtener los datos
                 const { data } = await createUser(payload);
-                const user = await getUser(data.id);
-                this.user = user.data;
+
+                // Obtener los detalles completos del usuario recién creado
+                const { data: user } = await getUser(data.id);
+
+                // Actualizar el estado del store con el nuevo usuario
+                this.user = user;
+                this.users.push(user);
+
+                // Actualizar el caché con la lista de usuarios actualizada
+                cache.setItem('users', this.users);
+
+                // Devolver el usuario creado
+                return this.user;
             } catch (error) {
-                this.msg = error.message;
+                // Manejar cualquier error ocurrido durante el proceso
+                this.msg = error.message || 'Error al crear el usuario';
                 this.user = null;
-                this.status = error.status_code;
+                this.status = error.status_code || 500;
+
+                // Devolver el código de estado de error
                 return this.status;
             }
-            return this.user;
         },
         async uploadUsers(payload) {
             const dataUsers = payload.map((user) => ({
