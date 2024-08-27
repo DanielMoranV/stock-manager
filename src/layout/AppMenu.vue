@@ -17,12 +17,22 @@ const model = ref([
         label: 'Almacén',
         items: [
             {
-                label: 'Inventario',
+                label: 'Productos',
                 icon: 'pi pi-fw pi-th-large',
                 items: [
                     { label: 'Productos', icon: 'pi pi-fw pi-briefcase', to: '/products' },
                     { label: 'Categorías', icon: 'pi pi-fw pi-chart-bar', to: '/categories' },
                     { label: 'Unidades', icon: 'pi pi-fw pi-box', to: '/units' }
+                ]
+            },
+            {
+                label: 'Inventario',
+                icon: 'pi pi-fw pi-box',
+                items: [
+                    { label: 'Movimientos', icon: 'pi pi-fw pi-briefcase', to: '/products' },
+                    { label: 'Reporte Inventario', icon: 'pi pi-fw pi-chart-bar', to: '/categories' },
+                    { label: 'Reporte Kardex', icon: 'pi pi-fw pi-box', to: '/units' },
+                    { label: 'Reporte Valorizado', icon: 'pi pi-fw pi-box', to: '/units' }
                 ]
             }
         ]

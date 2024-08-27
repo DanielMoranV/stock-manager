@@ -217,15 +217,22 @@ const confirmDeleteUser = (editUser) => {
 
 // Eliminar usuario
 const deleteUser = async () => {
+    isLoading.value = true;
     const response = await userStore.deleteUser(user.value.id);
     if (response.success == true) {
-        users.value = users.value.filter((val) => val.id !== user.value.id);
+        if (response.message == 'Usuario deshabilitado exitosamente') {
+            toast.add({ severity: 'success', summary: 'Éxito', detail: 'Usuario deshabilitado', life: 3000 });
+        } else {
+            users.value = users.value.filter((val) => val.id !== user.value.id);
+            toast.add({ severity: 'success', summary: 'Éxito', detail: 'Usuario Eliminado', life: 3000 });
+        }
+
         deleteUserDialog.value = false;
         user.value = {};
-        toast.add({ severity: 'success', summary: 'Éxito', detail: 'Usuario Eliminado', life: 3000 });
     } else {
         toast.add({ severity: 'error', summary: 'Error', detail: 'Error al elimar usuario', life: 3000 });
     }
+    isLoading.value = false;
 };
 
 // Confirmar eliminación de usuarios seleccionados
@@ -235,6 +242,7 @@ const confirmDeleteSelected = () => {
 
 // Eliminar usuarios seleccionados
 const deleteSelectedUsers = async () => {
+    isLoading.value = true;
     if (!selectedUsers.value || selectedUsers.value.length === 0) {
         toast.add({ severity: 'warn', summary: 'Advertencia', detail: 'No hay usuarios seleccionados', life: 3000 });
         return;
@@ -269,6 +277,7 @@ const deleteSelectedUsers = async () => {
     } else {
         toast.add({ severity: 'success', summary: 'Éxito', detail: 'Usuarios eliminados exitosamente', life: 3000 });
     }
+    isLoading.value = false;
 };
 
 // Ciclos de vida del componente
@@ -389,7 +398,7 @@ watch(() => user.value.phone, validatePhoneField);
         <Toolbar class="mb-6">
             <template #start>
                 <Button label="Nuevo" icon="pi pi-plus" severity="success" class="mr-2" @click="openNew" />
-                <Button label="Eliminar" icon="pi pi-trash" severity="danger" @click="confirmDeleteSelected" :disabled="!selectedUsers || !selectedUsers.length" />
+                <Button label="Eliminar" icon="pi pi-trash" severity="danger" @click="confirmDeleteSelected" :disabled="!selectedUsers || !selectedUsers.length" :loading="isLoading" />
             </template>
 
             <template #end>
@@ -431,6 +440,11 @@ watch(() => user.value.phone, validatePhoneField);
             <Column field="role.name" header="Rol" :sortable="true" headerStyle="width:14%; min-width:8rem;">
                 <template #body="slotProps">
                     {{ slotProps.data.role.name.toUpperCase() }}
+                </template>
+            </Column>
+            <Column field="is_active" header="Estado" :sortable="true" headerStyle="width:20%; min-width:10rem;">
+                <template #body="slotProps">
+                    <ToggleSwitch v-model="slotProps.data.is_active" />
                 </template>
             </Column>
             <Column field="company.company_name" header="Compañia" :sortable="true" headerStyle="width:14%; min-width:10rem;">
@@ -487,7 +501,7 @@ watch(() => user.value.phone, validatePhoneField);
             </div>
             <template #footer>
                 <Button label="No" icon="pi pi-times" text @click="deleteUserDialog = false" />
-                <Button label="Sí" icon="pi pi-check" text @click="deleteUser" />
+                <Button label="Sí" icon="pi pi-check" text @click="deleteUser" :loading="isLoading" />
             </template>
         </Dialog>
 
@@ -498,7 +512,7 @@ watch(() => user.value.phone, validatePhoneField);
             </div>
             <template #footer>
                 <Button label="No" icon="pi pi-times" text @click="deleteUsersDialog = false" />
-                <Button label="Sí" icon="pi pi-check" text @click="deleteSelectedUsers" />
+                <Button label="Sí" icon="pi pi-check" text @click="deleteSelectedUsers" :loading="isLoading" />
             </template>
         </Dialog>
     </div>

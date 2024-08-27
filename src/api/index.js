@@ -19,7 +19,7 @@ export const updateProfileUser = (payload, id) => {
         }
     });
 };
-export const uploadUsers = (payload) => axios.post('/users/storeUsers', payload);
+export const uploadUsers = (payload) => axios.post('/users/store', payload);
 export const deleteUser = (id) => axios.delete(`/users/${id}`);
 
 // Roles
@@ -47,7 +47,7 @@ export const getProduct = (id) => axios.get(`/products/${id}`);
 export const createProduct = (payload) => axios.post('/products', payload);
 export const updateProduct = (payload, id) => axios.put(`/products/${id}`, payload);
 export const deleteProduct = (id) => axios.delete(`/products/${id}`);
-export const uploadProducts = (payload) => axios.post('/products/storeProducts', payload);
+export const uploadProducts = (payload) => axios.post('/products/store', payload);
 
 // Categorias
 export const getCategories = () => axios.get('/categories');
@@ -55,6 +55,7 @@ export const getCategory = (id) => axios.get(`/categories/${id}`);
 export const createCategory = (payload) => axios.post('/categories', payload);
 export const updateCategory = (payload, id) => axios.put(`/categories/${id}`, payload);
 export const deleteCategory = (id) => axios.delete(`/categories/${id}`);
+export const uploadCategories = (payload) => axios.post('/categories/store', payload);
 
 // Unidades
 export const getUnits = () => axios.get('/units');
@@ -62,3 +63,4 @@ export const getUnit = (id) => axios.get(`/units/${id}`);
 export const createUnit = (payload) => axios.post('/units', payload);
 export const updateUnit = (payload, id) => axios.put(`/units/${id}`, payload);
 export const deleteUnit = (id) => axios.delete(`/units/${id}`);
+export const uploadUnits = (payload) => axios.post('/units/store', payload);

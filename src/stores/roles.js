@@ -10,17 +10,22 @@ export const useRolesStore = defineStore('rolesStore', {
     }),
     getters: {
         getRolesComboBox(state) {
-            return state.roles;
+            if (state.roles == null) return null;
+            const rolesCbx = state.roles.map((role) => {
+                return { label: role.name.toUpperCase(), value: role.id };
+            });
+            return rolesCbx;
         }
     },
     actions: {
         async fetchRoles() {
             try {
+                this.loading = true;
                 const data = await getRoles();
                 const roles = data.roles;
                 cache.setItem('roles', roles);
                 this.roles = roles;
-                this.loading = true;
+                this.loading = false;
             } catch (error) {
                 this.msg = error.message;
                 this.roles = null;
@@ -30,17 +35,16 @@ export const useRolesStore = defineStore('rolesStore', {
         async fetchRolesComboBox() {
             try {
                 const { data } = await getRoles();
-                const roles = data.map((role) => {
+                cache.setItem('roles', data);
+                this.roles = data;
+                const rolesCbx = data.map((role) => {
                     return { label: role.name.toUpperCase(), value: role.id };
                 });
-                cache.setItem('roles', roles);
-                this.roles = roles;
-                this.loading = true;
+                return rolesCbx;
             } catch (error) {
                 this.msg = error.message;
-                this.roles = null;
+                return null;
             }
-            return this.roles;
         },
         async assignRole(payload) {
             try {

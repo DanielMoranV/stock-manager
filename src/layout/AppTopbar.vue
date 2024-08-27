@@ -1,6 +1,7 @@
 <script setup>
 import { useLayout } from '@/layout/composables/layout';
 import { useAuthStore } from '@/stores/authStore';
+import cache from '@/utils/cache';
 import { ref } from 'vue';
 import { useRouter } from 'vue-router';
 import AppConfigurator from './AppConfigurator.vue';
@@ -18,7 +19,11 @@ const confirmLogout = () => {
     logoutDialog.value = true;
 };
 const logout = async () => {
-    await authStore.logout();
+    const response = await authStore.logout();
+    if (response == 'Unauthenticated.') {
+        cache.cleanAll();
+        router.push('/');
+    }
 };
 </script>
 
@@ -103,8 +108,13 @@ const logout = async () => {
             </span>
         </div>
         <template #footer>
-            <Button label="No" icon="pi pi-times" text @click="logoutDialog = false" />
-            <Button label="Sí" icon="pi pi-check" @click="logout" />
+            <div v-if="authStore.getLoading">
+                <ProgressSpinner style="width: 50px; height: 50px" strokeWidth="8" fill="var(--surface-ground)" animationDuration=".5s" aria-label="Custom ProgressSpinner" />
+            </div>
+            <div v-else>
+                <Button label="No" icon="pi pi-times" text @click="logoutDialog = false" />
+                <Button label="Sí" icon="pi pi-check" @click="logout" />
+            </div>
         </template>
     </Dialog>
 </template>

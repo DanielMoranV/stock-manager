@@ -20,8 +20,6 @@ const categories = ref(null);
 const category = ref(null);
 const deleteCategoriesDialog = ref(false);
 const deleteCategoryDialog = ref(false);
-const userId = ref(null);
-const units = ref(null);
 const dt = ref(null);
 const filters = ref({});
 const submitted = ref(false);
@@ -32,7 +30,7 @@ const selectedCategories = ref(null);
 const toast = useToast();
 
 const isFormValid = () => {
-    return category.value.name && category.value.name.trim() && category.value.code && category.value.code.trim();
+    return category.value.name && category.value.name.trim();
 };
 // Manejar entrada de nombre
 const handleNameInput = () => {
@@ -84,10 +82,6 @@ const saveCategory = async () => {
     loadingCategories.value = true;
 
     try {
-        const categoryIndex = categories.value.findIndex((item) => item.value === category.value.category.id);
-        const unitIndex = units.value.findIndex((item) => item.value === category.value.unit.id);
-        category.value.category.name = categories.value[categoryIndex].label;
-        category.value.unit.name = units.value[unitIndex].label;
         if (category.value.id) {
             await updateCategory();
         } else {
@@ -98,7 +92,7 @@ const saveCategory = async () => {
         category.value = {};
     } catch (error) {
         console.error(error);
-        toast.add({ severity: 'error', summary: 'Error', detail: 'Error al guardar usuario', life: 3000 });
+        toast.add({ severity: 'error', summary: 'Error', detail: 'Error al guardar categoría', life: 3000 });
     } finally {
         isLoading.value = false;
         loadingCategories.value = false;
@@ -107,19 +101,23 @@ const saveCategory = async () => {
 
 // Actualizar producto
 const updateCategory = async () => {
-    await productsStore.updateCategory(category.value, category.value.id);
-    const categoryIndex = findIndexById(category.value.id, categories.value);
+    try {
+        await productsStore.updateCategory(category.value, category.value.id);
+        const categoryIndex = findIndexById(category.value.id, categories.value);
 
-    categories.value[categoryIndex] = category.value;
-    toast.add({ severity: 'success', summary: 'Éxito', detail: 'Categorias actualizado', life: 3000 });
+        categories.value[categoryIndex] = category.value;
+        productsStore.updateListCategories(category.value, category.value.id);
+        toast.add({ severity: 'success', summary: 'Éxito', detail: 'Categorias actualizado', life: 3000 });
+    } catch (error) {
+        toast.add({ severity: 'error', summary: 'Error', detail: `Error al actualizar el categoría: ${error.message}`, life: 3000 });
+    }
 };
 
 // Crear producto
 const createCategory = async () => {
-    category.value.user_id = userId.value;
     const response = await productsStore.createCategory(category.value);
 
-    if (response == '422') {
+    if (response == 422 || response == 500) {
         toast.add({ severity: 'error', summary: 'Error', detail: 'Categoria ya registrado, error en validación', life: 3000 });
         isLoading.value = false;
         loadingCategories.value = false;
@@ -129,9 +127,8 @@ const createCategory = async () => {
     }
 
     category.value = response;
-    categories.value.push(category.value);
 
-    toast.add({ severity: 'success', summary: 'Éxito', detail: 'Nuevo usuario agregado', life: 3000 });
+    toast.add({ severity: 'success', summary: 'Éxito', detail: 'Nueva categoría agregado', life: 3000 });
 };
 
 // Ciclos de vida del componente
@@ -141,7 +138,7 @@ onBeforeMount(() => {
 
 onMounted(async () => {
     loadingCategories.value = true;
-    await productsStore.getCategories().then((data) => (categories.value = data));
+    categories.value = productsStore.getCategories || (await productsStore.fetchCategories());
     loadingCategories.value = false;
 });
 
@@ -163,12 +160,8 @@ const onUpload = async (event) => {
 
             // Procesar los datos del archivo
             const categoriesData = rows.slice(2).map((row) => ({
-                code: row[1],
-                name: row[2],
-                description: row[3] ? row[3] : null,
-                category_id: categories.value.find((category) => category.label === row[4])?.value || null,
-                unit_id: units.value.find((unit) => unit.label === row[5].toUpperCase())?.value || null,
-                user_id: userId.value
+                name: row[1],
+                description: row[2] ? row[2] : null
             }));
             await uploadCategories(categoriesData);
         } catch (error) {
@@ -185,17 +178,17 @@ const uploadCategories = async (categoriesData) => {
     try {
         // Enviar los datos al backend
         const response = await productsStore.uploadCategories(categoriesData);
-        await productsStore.getCategories().then((data) => (categories.value = data));
-        if (response.success.length != 0) {
+        categories.value = await productsStore.fetchCategories();
+        if (response.success.length > 0) {
             response.success.length;
             toast.add({ severity: 'success', summary: 'Éxito', detail: response.success.length + ' Datos importados correctamente', life: 3000 });
         }
-        if (response.errors.length != 0) {
+        if (response.errors.length > 0) {
             response.success.length;
             toast.add({ severity: 'error', summary: 'Éxito', detail: response.errors.length + ' Datos importados incorrectamente', life: 3000 });
         }
-        //users.value.push(...response.success);
     } catch (error) {
+        console.error(error);
         toast.add({ severity: 'error', summary: 'Error', detail: 'Error al importar los datos', life: 3000 });
     } finally {
         loadingCategories.value = false;
@@ -210,8 +203,9 @@ const confirmDeleteCategory = (categoryDeleted) => {
 
 // Eliminar producto
 const deleteCategory = async () => {
+    isLoading.value = true;
     const response = await productsStore.deleteCategory(category.value.id);
-    if (response == true) {
+    if (response.success == true) {
         categories.value = categories.value.filter((val) => val.id !== category.value.id);
         deleteCategoryDialog.value = false;
         category.value = {};
@@ -219,6 +213,7 @@ const deleteCategory = async () => {
     } else {
         toast.add({ severity: 'error', summary: 'Error', detail: 'Error al elimar Categoria', life: 3000 });
     }
+    isLoading.value = false;
 };
 
 // Confirmar eliminacion
@@ -227,6 +222,7 @@ const confirmDeleteSelected = () => {
 };
 // Eliminar Categoria
 const deleteSelectedCategories = async () => {
+    isLoading.value = true;
     const selectedCategoriesIds = selectedCategories.value.map((category) => category.id);
     const successfulDeletes = [];
     const failedDeletes = [];
@@ -254,6 +250,7 @@ const deleteSelectedCategories = async () => {
     } else {
         toast.add({ severity: 'success', summary: 'Éxito', detail: 'Categorias Eliminados', life: 3000 });
     }
+    isLoading.value = false;
 };
 </script>
 <template>
@@ -280,7 +277,7 @@ const deleteSelectedCategories = async () => {
             :filters="filters"
             paginatorTemplate="FirstPageLink PrevPageLink PageLinks NextPageLink LastPageLink CurrentPageReport RowsPerPageDropdown"
             :rowsPerPageOptions="[5, 10, 25, 50, 100]"
-            currentPageReportTemplate="Mostrando del {first} al {last} de {totalRecords} productos"
+            currentPageReportTemplate="Mostrando del {first} al {last} de {totalRecords} categorías"
         >
             <template #header>
                 <div class="flex flex-wrap gap-2 items-center justify-between">
@@ -302,7 +299,7 @@ const deleteSelectedCategories = async () => {
             <Column :exportable="false" style="min-width: 8rem">
                 <template #body="slotProps">
                     <Button icon="pi pi-pencil" class="mr-2" severity="success" rounded @click="editCategory(slotProps.data)" />
-                    <Button icon="pi pi-trash" class="mt-2" severity="warn" rounded @click="confirmDeleteCategory(slotProps.data)" />
+                    <Button icon="pi pi-trash" class="mt-2" severity="warn" rounded @click="confirmDeleteCategory(slotProps.data)" :loading="isLoading" />
                 </template>
             </Column>
         </DataTable>
@@ -332,7 +329,7 @@ const deleteSelectedCategories = async () => {
             </div>
             <template #footer>
                 <Button label="No" icon="pi pi-times" text @click="deleteCategoryDialog = false" />
-                <Button label="Sí" icon="pi pi-check" text @click="deleteCategory" />
+                <Button label="Sí" icon="pi pi-check" text @click="deleteCategory" :loading="isLoading" />
             </template>
         </Dialog>
 
@@ -343,7 +340,7 @@ const deleteSelectedCategories = async () => {
             </div>
             <template #footer>
                 <Button label="No" icon="pi pi-times" text @click="deleteCategoriesDialog = false" />
-                <Button label="Sí" icon="pi pi-check" text @click="deleteSelectedCategories" />
+                <Button label="Sí" icon="pi pi-check" text @click="deleteSelectedCategories" :loading="isLoading" />
             </template>
         </Dialog>
     </div>

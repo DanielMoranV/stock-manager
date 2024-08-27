@@ -23,7 +23,7 @@ const product = ref(null);
 const deleteProductsDialog = ref(false);
 const deleteProductDialog = ref(false);
 const categories = ref(null);
-const userId = ref(null);
+const user = ref(null);
 const units = ref(null);
 const dt = ref(null);
 const filters = ref({});
@@ -139,7 +139,11 @@ const updateProduct = async () => {
 
 // Crear producto
 const createProduct = async () => {
-    product.value.user_id = userId.value;
+    product.value.user_id = user.value.id;
+    product.value.user = {
+        id: user.value.id,
+        name: user.value.name
+    };
     const response = await productsStore.createProduct(product.value);
 
     if (response == 422 || response == 500) {
@@ -169,7 +173,10 @@ onMounted(async () => {
     units.value = productsStore.getUnitsCbx || (await productsStore.fetchUnitsComboBox());
 
     const data = authStore.getUser;
-    userId.value = data.id;
+    user.value = {
+        id: data.id,
+        name: data.name
+    };
     loadingProducts.value = false;
 });
 
@@ -195,8 +202,8 @@ const onUpload = async (event) => {
                 name: row[2],
                 description: row[3] ? row[3] : null,
                 category_id: categories.value.find((category) => category.label === row[4])?.value || null,
-                unit_id: units.value.find((unit) => unit.label === row[5].toUpperCase())?.value || null,
-                user_id: userId.value
+                unit_id: units.value.find((unit) => unit.label.toUpperCase() === row[5].toUpperCase())?.value || null,
+                user_id: user.value.id
             }));
             await uploadProducts(productsData);
         } catch (error) {
@@ -213,16 +220,15 @@ const uploadProducts = async (productsData) => {
     try {
         // Enviar los datos al backend
         const response = await productsStore.uploadProducts(productsData);
-        await productsStore.getProducts().then((data) => (products.value = data));
-        if (response.success.length != 0) {
+        products.value = await productsStore.fetchProducts();
+        if (response.success.length > 0) {
             response.success.length;
             toast.add({ severity: 'success', summary: 'Éxito', detail: response.success.length + ' Datos importados correctamente', life: 3000 });
         }
-        if (response.errors.length != 0) {
+        if (response.errors.length > 0) {
             response.success.length;
-            toast.add({ severity: 'error', summary: 'Éxito', detail: response.errors.length + ' Datos importados incorrectamente', life: 3000 });
+            toast.add({ severity: 'error', summary: 'Error', detail: response.errors.length + ' Datos importados incorrectamente', life: 3000 });
         }
-        //users.value.push(...response.success);
     } catch (error) {
         toast.add({ severity: 'error', summary: 'Error', detail: 'Error al importar los datos', life: 3000 });
     } finally {
@@ -238,8 +244,9 @@ const confirmDeleteProduct = (productDeleted) => {
 
 // Eliminar producto
 const deleteProduct = async () => {
+    isLoading.value = true;
     const response = await productsStore.deleteProduct(product.value.id);
-    if (response == true) {
+    if (response.success == true) {
         products.value = products.value.filter((val) => val.id !== product.value.id);
         deleteProductDialog.value = false;
         product.value = {};
@@ -247,6 +254,7 @@ const deleteProduct = async () => {
     } else {
         toast.add({ severity: 'error', summary: 'Error', detail: 'Error al elimar Producto', life: 3000 });
     }
+    isLoading.value = false;
 };
 
 // Confirmar eliminacion
@@ -255,6 +263,7 @@ const confirmDeleteSelected = () => {
 };
 // Eliminar Producto
 const deleteSelectedProducts = async () => {
+    isLoading.value = true;
     const selectedProductsIds = selectedProducts.value.map((product) => product.id);
     const successfulDeletes = [];
     const failedDeletes = [];
@@ -282,6 +291,7 @@ const deleteSelectedProducts = async () => {
     } else {
         toast.add({ severity: 'success', summary: 'Éxito', detail: 'Productos Eliminados', life: 3000 });
     }
+    isLoading.value = false;
 };
 </script>
 <template>
@@ -289,7 +299,7 @@ const deleteSelectedProducts = async () => {
         <Toolbar class="mb-6">
             <template #start>
                 <Button label="Nuevo" icon="pi pi-plus" severity="success" class="mr-2" @click="openNew" />
-                <Button label="Eliminar" icon="pi pi-trash" severity="danger" @click="confirmDeleteSelected" :disabled="!selectedProducts || !selectedProducts.length" />
+                <Button label="Eliminar" icon="pi pi-trash" severity="danger" @click="confirmDeleteSelected" :disabled="!selectedProducts || !selectedProducts.length" :loading="isLoading" />
             </template>
 
             <template #end>
@@ -332,7 +342,7 @@ const deleteSelectedProducts = async () => {
                     {{ slotProps.data.unit.symbol.toUpperCase() }}
                 </template>
             </Column>
-
+            <Column field="user.name" header="Creado por" :sortable="true" headerStyle="width:20%; min-width:10rem;"> </Column>
             <Column :exportable="false" style="min-width: 8rem">
                 <template #body="slotProps">
                     <Button icon="pi pi-pencil" class="mr-2" severity="success" rounded @click="editProduct(slotProps.data)" />
@@ -379,7 +389,7 @@ const deleteSelectedProducts = async () => {
             </div>
             <template #footer>
                 <Button label="No" icon="pi pi-times" text @click="deleteProductDialog = false" />
-                <Button label="Sí" icon="pi pi-check" text @click="deleteProduct" />
+                <Button label="Sí" icon="pi pi-check" text @click="deleteProduct" :loading="isLoading" />
             </template>
         </Dialog>
 
@@ -390,7 +400,7 @@ const deleteSelectedProducts = async () => {
             </div>
             <template #footer>
                 <Button label="No" icon="pi pi-times" text @click="deleteProductsDialog = false" />
-                <Button label="Sí" icon="pi pi-check" text @click="deleteSelectedProducts" />
+                <Button label="Sí" icon="pi pi-check" text @click="deleteSelectedProducts" :loading="isLoading" />
             </template>
         </Dialog>
     </div>

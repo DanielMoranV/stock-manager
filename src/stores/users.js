@@ -73,12 +73,12 @@ export const useUsersStore = defineStore('userStore', {
         },
         async uploadUsers(payload) {
             const dataUsers = payload.map((user) => ({
-                dni: user.dni,
+                dni: String(user.dni),
                 name: user.name,
                 phone: user.phone,
                 email: user.email,
-                password: user.dni,
-                password_confirmation: user.dni,
+                password: String(user.dni),
+                password_confirmation: String(user.dni),
                 role: user.role
             }));
 
@@ -90,6 +90,7 @@ export const useUsersStore = defineStore('userStore', {
                 this.msg = data.message;
                 return data;
             } catch (error) {
+                console.log(error);
                 this.msg = error.message;
                 this.users = null;
                 this.status = error.status_code;
@@ -137,12 +138,23 @@ export const useUsersStore = defineStore('userStore', {
         async deleteUser(id) {
             try {
                 const response = await deleteUser(id);
+
                 if (response.success) {
-                    // Eliminar el usuario del estado local
-                    this.users = this.users.filter((user) => user.id !== id);
+                    if (response.message == 'Usuario deshabilitado exitosamente') {
+                        // Encuentra el usuario por id y actualiza la propiedad is_active a false
+                        console.log(response.message);
+                        const userIndex = this.users.findIndex((user) => user.id === id);
+                        if (userIndex !== -1) {
+                            this.users[userIndex].is_active = false;
+                        }
+                    } else {
+                        // Eliminar el usuario del estado local si fue eliminado físicamente
+                        this.users = this.users.filter((user) => user.id !== id);
+                    }
                     // Actualizar el caché con la lista de usuarios actualizada
                     cache.setItem('users', this.users);
                 }
+                console.log(response);
                 return response;
             } catch (error) {
                 this.msg = error.message;

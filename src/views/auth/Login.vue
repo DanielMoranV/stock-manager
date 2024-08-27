@@ -44,8 +44,10 @@ const login = async () => {
             case 'Unauthorized':
                 toast.add({ severity: 'warn', summary: 'Credenciales incorrectas', life: 3000 });
                 break;
+            case 'This action is unauthorized.':
+                toast.add({ severity: 'error', summary: 'Usuario deshabilitado o no registrado', life: 3000 });
+                break;
             default:
-                console.log(authStore.error);
                 toast.add({ severity: 'error', summary: 'Ocurrió un error en el servidor intentelo más tarde.', life: 3000 });
                 break;
         }

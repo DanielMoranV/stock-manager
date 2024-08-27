@@ -28,6 +28,9 @@ export const useAuthStore = defineStore('authStore', {
         },
         getUser(state) {
             return state.user;
+        },
+        getLoading(state) {
+            return state.loading;
         }
     },
     actions: {
@@ -39,6 +42,7 @@ export const useAuthStore = defineStore('authStore', {
                 this.token = access_token;
                 this.session = true;
             } catch (error) {
+                console.error(error);
                 this.error = error.message;
                 this.user = null;
                 this.session = false;
@@ -49,6 +53,7 @@ export const useAuthStore = defineStore('authStore', {
 
         async logout() {
             try {
+                this.loading = true;
                 const { message } = await logout();
                 this.error = message;
                 cache.cleanAll();
@@ -59,6 +64,8 @@ export const useAuthStore = defineStore('authStore', {
             } catch (error) {
                 this.error = error.message;
                 return this.error;
+            } finally {
+                this.loading = false;
             }
         },
         async me() {
