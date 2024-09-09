@@ -1,6 +1,6 @@
 <script setup>
-import { useRolesStore } from '@/stores/roles';
-import { useUsersStore } from '@/stores/users';
+import { useRolesStore } from '@/stores/rolesStore';
+import { useUsersStore } from '@/stores/usersStore';
 import { exportToExcel } from '@/utils/excelUtils';
 import { capitalizeName, findIndexById, restrictToNumbers, validateDNI, validateEmail, validatePhone } from '@/utils/validationUtils';
 import { FilterMatchMode } from '@primevue/core/api';

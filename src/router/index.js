@@ -32,17 +32,22 @@ const router = createRouter({
                 {
                     path: '/products',
                     name: 'products',
-                    component: () => import('@/views/inventory/Products.vue')
+                    component: () => import('@/views/products/Products.vue')
                 },
                 {
                     path: '/categories',
                     name: 'categories',
-                    component: () => import('@/views/inventory/Categories.vue')
+                    component: () => import('@/views/products/Categories.vue')
                 },
                 {
                     path: '/units',
                     name: 'units',
-                    component: () => import('@/views/inventory/Units.vue')
+                    component: () => import('@/views/products/Units.vue')
+                },
+                {
+                    path: '/movements',
+                    name: 'movements',
+                    component: () => import('@/views/inventory/Movements.vue')
                 }
             ]
         },

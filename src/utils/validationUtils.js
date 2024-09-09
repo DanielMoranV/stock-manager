@@ -28,3 +28,11 @@ export function restrictToNumbers(event) {
 export function findIndexById(id, array) {
     return array.findIndex((item) => item.id === id);
 }
+
+export function formatCurrency(value) {
+    return new Intl.NumberFormat('es-PE', {
+        style: 'currency',
+        currency: 'PEN',
+        minimumFractionDigits: 2
+    }).format(value);
+}

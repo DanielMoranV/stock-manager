@@ -64,3 +64,7 @@ export const createUnit = (payload) => axios.post('/units', payload);
 export const updateUnit = (payload, id) => axios.put(`/units/${id}`, payload);
 export const deleteUnit = (id) => axios.delete(`/units/${id}`);
 export const uploadUnits = (payload) => axios.post('/units/store', payload);
+
+// Movimientos de stock
+export const getStockMovements = () => axios.get('/stock-movements');
+export const createEntryStockMovements = (payload) => axios.post('/stock-movements', payload);

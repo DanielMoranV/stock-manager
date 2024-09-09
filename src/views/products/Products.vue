@@ -1,6 +1,6 @@
 <script setup>
 import { useAuthStore } from '@/stores/authStore';
-import { useProductsStore } from '@/stores/products';
+import { useProductsStore } from '@/stores/productsStore';
 import { exportToExcel } from '@/utils/excelUtils';
 import { capitalizeName, findIndexById } from '@/utils/validationUtils';
 import { FilterMatchMode } from '@primevue/core/api';

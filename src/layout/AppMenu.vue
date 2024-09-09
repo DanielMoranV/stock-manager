@@ -29,7 +29,7 @@ const model = ref([
                 label: 'Inventario',
                 icon: 'pi pi-fw pi-box',
                 items: [
-                    { label: 'Movimientos', icon: 'pi pi-fw pi-briefcase', to: '/products' },
+                    { label: 'Movimientos', icon: 'pi pi-fw pi-briefcase', to: '/movements' },
                     { label: 'Reporte Inventario', icon: 'pi pi-fw pi-chart-bar', to: '/categories' },
                     { label: 'Reporte Kardex', icon: 'pi pi-fw pi-box', to: '/units' },
                     { label: 'Reporte Valorizado', icon: 'pi pi-fw pi-box', to: '/units' }
