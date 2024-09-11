@@ -174,49 +174,68 @@ onMounted(async () => {
             </template>
         </DataTable>
         <Dialog v-model:visible="entryStockMovementDialog" header="Nuevo Movimiento Entrada" :modal="true">
-            <div class="p-fluid p-grid p-formgrid">
+            <div class="p-6 grid grid-cols-1 md:grid-cols-2 gap-4">
                 <!-- Serie -->
-                <div class="field p-col-12 p-md-6">
-                    <label for="serie">Serie</label>
-                    <InputText id="serie" v-model="entryData.serie" required />
+                <div class="field">
+                    <label for="serie" class="block mb-1 text-sm font-medium text-gray-700">Serie</label>
+                    <InputText id="serie" v-model="entryData.serie" required class="w-full border border-gray-300 rounded-md p-2" />
                 </div>
 
                 <!-- Número -->
-                <div class="field p-col-12 p-md-6">
-                    <label for="numero">Número</label>
-                    <InputText id="numero" v-model="entryData.numero" required />
+                <div class="field">
+                    <label for="numero" class="block mb-1 text-sm font-medium text-gray-700">Número</label>
+                    <InputText id="numero" v-model="entryData.numero" required class="w-full border border-gray-300 rounded-md p-2" />
                 </div>
 
                 <!-- Monto -->
-                <div class="field p-col-12 p-md-6">
-                    <label for="monto">Monto</label>
-                    <InputText id="monto" v-model="entryData.monto" type="number" required />
+                <div class="field">
+                    <label for="monto" class="block mb-1 text-sm font-medium text-gray-700">Monto</label>
+                    <InputText id="monto" v-model="entryData.monto" type="number" required class="w-full border border-gray-300 rounded-md p-2" />
                 </div>
 
                 <!-- Estado -->
-                <div class="field p-col-12 p-md-6">
-                    <label for="estado">Estado</label>
-                    <Dropdown id="estado" v-model="entryData.estado" :options="estadoOptions" placeholder="Seleccione el estado" required />
+                <div class="field">
+                    <label for="estado" class="block mb-1 text-sm font-medium text-gray-700">Estado</label>
+                    <Dropdown id="estado" v-model="entryData.estado" :options="estadoOptions" optionLabel="label" placeholder="Seleccione el estado" required class="w-full" />
                 </div>
 
                 <!-- Fecha Emisión -->
-                <div class="field p-col-12 p-md-6">
-                    <label for="fechaEmision">Fecha Emisión</label>
-                    <Calendar id="fechaEmision" v-model="entryData.fechaEmision" showIcon />
-                </div>
-
-                <!-- Comentario -->
-                <div class="field p-col-12 p-md-6">
-                    <label for="comentario">Comentario</label>
-                    <InputText id="comentario" v-model="entryData.comentario" />
+                <div class="field">
+                    <label for="fechaEmision" class="block mb-1 text-sm font-medium text-gray-700">Fecha Emisión</label>
+                    <Calendar id="fechaEmision" v-model="entryData.fechaEmision" showIcon class="w-full" />
                 </div>
 
                 <!-- Proveedor -->
-                <div class="field p-col-12 p-md-6">
-                    <label for="proveedor">Proveedor</label>
-                    <Dropdown id="proveedor" v-model="entryData.proveedor" :options="proveedores" placeholder="Seleccione un proveedor" required />
+                <div class="field">
+                    <label for="proveedor" class="block mb-1 text-sm font-medium text-gray-700">Proveedor</label>
+                    <Dropdown id="proveedor" v-model="entryData.proveedor" :options="proveedores" placeholder="Seleccione un proveedor" required class="w-full" />
+                </div>
+
+                <!-- Comentario (Textarea) -->
+                <div class="field md:col-span-2">
+                    <label for="comentario" class="block mb-1 text-sm font-medium text-gray-700">Comentario</label>
+                    <Textarea id="comentario" v-model="entryData.comentario" rows="3" class="w-full border border-gray-300 rounded-md p-2" />
+                </div>
+
+                <!-- Productos -->
+                <div class="field md:col-span-2">
+                    <label class="block mb-1 text-sm font-medium text-gray-700">Productos</label>
+                    <div class="flex items-center space-x-2 mb-2">
+                        <Button label="Agregar Producto" icon="pi pi-plus" class="p-button-success" @click="addProduct" />
+                        <Button label="Eliminar Producto" icon="pi pi-trash" class="p-button-danger" @click="removeSelectedProduct" :disabled="!selectedProduct" />
+                    </div>
+                    <DataList :value="productos" v-model:selection="selectedProduct" dataKey="id" selectionMode="single" class="mt-2">
+                        <template #item="slotProps">
+                            <div class="flex justify-between items-center p-2 border rounded-md">
+                                <span>{{ slotProps.data.name }}</span>
+                                <span class="text-sm text-gray-500">{{ slotProps.data.price | currency }}</span>
+                            </div>
+                        </template>
+                    </DataList>
                 </div>
             </div>
+
+            <!-- Footer -->
             <template #footer>
                 <Button label="Cancelar" icon="pi pi-times" text @click="hideDialog" />
                 <Button label="Guardar" icon="pi pi-check" text :loading="isLoading" @click="saveEntryMovementStock" />
