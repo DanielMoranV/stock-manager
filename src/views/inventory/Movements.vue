@@ -1,5 +1,7 @@
 <script setup>
 import { useAuthStore } from '@/stores/authStore';
+import { useProductsStore } from '@/stores/productsStore';
+import { useProvidersStore } from '@/stores/providersStore';
 import { useStockMomentsStore } from '@/stores/stockMovementsStore';
 import { dformat } from '@/utils/day';
 import { formatCurrency } from '@/utils/validationUtils';
@@ -12,16 +14,22 @@ const isLoading = ref(false);
 
 const stockMovementsStore = useStockMomentsStore();
 const authStore = useAuthStore();
+const providersStore = useProvidersStore();
+const selectedProduct = ref(null);
+const productsStore = useProductsStore();
 
 const toast = useToast();
 
 const stockMovements = ref([]);
 const stockMovement = ref([]);
 const filters = ref({});
+const filteredProducts = ref();
 const submitted = ref(false);
 const entryStockMovementDialog = ref(false);
 const expandedRows = ref({});
 const selectedStockMovements = ref(null);
+const products = ref({});
+const items = ref([]);
 
 const expandAll = () => {
     expandedRows.value = stockMovements.value.reduce((acc, p) => (acc[p.id] = true) && acc, {});
@@ -41,13 +49,13 @@ const openNewEntry = () => {
     entryStockMovementDialog.value = true;
 };
 const entryData = ref({
-    serie: '',
-    numero: '',
-    monto: '',
-    estado: null,
-    fechaEmision: null,
-    comentario: '',
-    proveedor: null
+    series: '',
+    number: '',
+    amount: '',
+    status: null,
+    issue_date: null,
+    comment: '',
+    provider_id: null
 });
 
 // Opciones para el combobox de estado
@@ -58,23 +66,40 @@ const estadoOptions = ref([
 ]);
 
 // Opciones para el combobox de proveedor
-const proveedores = ref([
-    { label: 'Danitec', value: 'danitec' },
-    { label: 'Compucenter', value: 'compucenter' },
-    { label: 'PCStore', value: 'pcstore' }
-]);
+const providers = ref([]);
 
 const hideDialog = () => {
     entryStockMovementDialog.value = false;
     submitted.value = false;
 };
 
+const search = (event) => {
+    if (!event.query.trim().length) {
+        filteredProducts.value = [...products.value];
+    } else {
+        filteredProducts.value = products.value.filter((product) => {
+            return product.name.toLowerCase().startsWith(event.query.toLowerCase());
+        });
+    }
+};
 onBeforeMount(() => {
     initFilters();
 });
 
+const loadProviders = async () => {
+    if (!providersStore.getProvidersCbx) {
+        await providersStore.fetchProviders();
+    }
+    providers.value = providersStore.getProvidersCbx;
+};
+
 onMounted(async () => {
     stockMovements.value = stockMovementsStore.getStockMovements || (await stockMovementsStore.fetchStockMoments());
+    await loadProviders();
+
+    products.value = productsStore.getProducts || (await productsStore.fetchProducts());
+
+    console.log(products.value);
 });
 </script>
 <template>
@@ -178,46 +203,51 @@ onMounted(async () => {
                 <!-- Serie -->
                 <div class="field">
                     <label for="serie" class="block mb-1 text-sm font-medium text-gray-700">Serie</label>
-                    <InputText id="serie" v-model="entryData.serie" required class="w-full border border-gray-300 rounded-md p-2" />
+                    <InputText id="serie" v-model="entryData.series" required class="w-full border border-gray-300 rounded-md p-2" />
                 </div>
 
                 <!-- Número -->
                 <div class="field">
                     <label for="numero" class="block mb-1 text-sm font-medium text-gray-700">Número</label>
-                    <InputText id="numero" v-model="entryData.numero" required class="w-full border border-gray-300 rounded-md p-2" />
+                    <InputText id="numero" v-model="entryData.number" required class="w-full border border-gray-300 rounded-md p-2" />
                 </div>
 
                 <!-- Monto -->
                 <div class="field">
                     <label for="monto" class="block mb-1 text-sm font-medium text-gray-700">Monto</label>
-                    <InputText id="monto" v-model="entryData.monto" type="number" required class="w-full border border-gray-300 rounded-md p-2" />
+                    <InputText id="monto" v-model="entryData.amount" type="number" required class="w-full border border-gray-300 rounded-md p-2" />
                 </div>
 
                 <!-- Estado -->
                 <div class="field">
                     <label for="estado" class="block mb-1 text-sm font-medium text-gray-700">Estado</label>
-                    <Dropdown id="estado" v-model="entryData.estado" :options="estadoOptions" optionLabel="label" placeholder="Seleccione el estado" required class="w-full" />
+                    <Dropdown id="estado" v-model="entryData.status" :options="estadoOptions" optionLabel="label" placeholder="Seleccione el estado" required class="w-full" />
                 </div>
 
                 <!-- Fecha Emisión -->
                 <div class="field">
                     <label for="fechaEmision" class="block mb-1 text-sm font-medium text-gray-700">Fecha Emisión</label>
-                    <Calendar id="fechaEmision" v-model="entryData.fechaEmision" showIcon class="w-full" />
+                    <Calendar id="fechaEmision" v-model="entryData.issue_date" showIcon class="w-full" />
                 </div>
 
                 <!-- Proveedor -->
                 <div class="field">
                     <label for="proveedor" class="block mb-1 text-sm font-medium text-gray-700">Proveedor</label>
-                    <Dropdown id="proveedor" v-model="entryData.proveedor" :options="proveedores" placeholder="Seleccione un proveedor" required class="w-full" />
+                    <Dropdown id="proveedor" v-model="entryData.provider_id" :options="providers" placeholder="Seleccione un proveedor" required class="w-full" optionValue="value" optionLabel="label" />
                 </div>
 
                 <!-- Comentario (Textarea) -->
                 <div class="field md:col-span-2">
                     <label for="comentario" class="block mb-1 text-sm font-medium text-gray-700">Comentario</label>
-                    <Textarea id="comentario" v-model="entryData.comentario" rows="3" class="w-full border border-gray-300 rounded-md p-2" />
+                    <Textarea id="comentario" v-model="entryData.comment" rows="3" class="w-full border border-gray-300 rounded-md p-2" />
                 </div>
 
                 <!-- Productos -->
+                <div class="field md:col-span-2">
+                    <label for="comentario" class="block mb-1 text-sm font-medium text-gray-700">Productos</label>
+                    <AutoComplete dropdown v-model="selectedProduct" forceSelection optionLabel="name" :suggestions="filteredProducts" @complete="search" />
+                </div>
+
                 <div class="field md:col-span-2">
                     <label class="block mb-1 text-sm font-medium text-gray-700">Productos</label>
                     <div class="flex items-center space-x-2 mb-2">
@@ -228,7 +258,7 @@ onMounted(async () => {
                         <template #item="slotProps">
                             <div class="flex justify-between items-center p-2 border rounded-md">
                                 <span>{{ slotProps.data.name }}</span>
-                                <span class="text-sm text-gray-500">{{ slotProps.data.price | currency }}</span>
+                                <span class="text-sm text-gray-500">{{ slotProps.data.price }}</span>
                             </div>
                         </template>
                     </DataList>

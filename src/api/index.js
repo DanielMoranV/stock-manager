@@ -68,3 +68,6 @@ export const uploadUnits = (payload) => axios.post('/units/store', payload);
 // Movimientos de stock
 export const getStockMovements = () => axios.get('/stock-movements');
 export const createEntryStockMovements = (payload) => axios.post('/stock-movements', payload);
+
+// Proveedores
+export const getProviders = () => axios.get('/providers');
