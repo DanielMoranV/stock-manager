@@ -87,8 +87,17 @@ export const useProductsStore = defineStore('productStore', {
         async fetchProducts() {
             try {
                 const { data } = await getProducts();
-                cache.setItem('products', data);
-                this.products = data;
+                // Modificar el nombre de los productos para que sea más descriptivo
+                const updatedProducts = data.map((product) => {
+                    return {
+                        ...product,
+                        fullDescription: `${product.code} - ${product.name} - ${product.category.name}`
+                    };
+                });
+
+                // Guardar en el cache y actualizar el estado
+                cache.setItem('products', updatedProducts);
+                this.products = updatedProducts;
             } catch (error) {
                 this.msg = error.message;
                 this.products = null;

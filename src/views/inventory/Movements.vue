@@ -15,12 +15,16 @@ const isLoading = ref(false);
 const stockMovementsStore = useStockMomentsStore();
 const authStore = useAuthStore();
 const providersStore = useProvidersStore();
-const selectedProduct = ref(null);
 const productsStore = useProductsStore();
+const toggleFechaVencimiento = ref(false);
 
 const toast = useToast();
 
 const stockMovements = ref([]);
+const selectedProduct = ref(null);
+const movementsDetails = ref([]);
+const itemDetails = ref({});
+const listProducts = ref([]);
 const stockMovement = ref([]);
 const filters = ref({});
 const filteredProducts = ref();
@@ -74,13 +78,36 @@ const hideDialog = () => {
 };
 
 const search = (event) => {
-    if (!event.query.trim().length) {
+    const query = event.query.trim().toLowerCase();
+
+    if (!query.length) {
         filteredProducts.value = [...products.value];
     } else {
         filteredProducts.value = products.value.filter((product) => {
-            return product.name.toLowerCase().startsWith(event.query.toLowerCase());
+            return product.fullDescription.toLowerCase().includes(query);
         });
     }
+};
+
+const addProduct = () => {
+    if (toggleFechaVencimiento.value == false) {
+        itemDetails.value.expiration_date = null;
+    }
+
+    let item = {
+        product_id: selectedProduct.value.id,
+        name: selectedProduct.value.name,
+        expiration_date: itemDetails.value.expiration_date,
+        price: itemDetails.value.price,
+        count: itemDetails.value.count,
+        total: itemDetails.value.price * itemDetails.value.count
+    };
+
+    movementsDetails.value.push(item);
+};
+
+const saveEntryMovementStock = () => {
+    console.log('guardar');
 };
 onBeforeMount(() => {
     initFilters();
@@ -198,8 +225,10 @@ onMounted(async () => {
                 </div>
             </template>
         </DataTable>
-        <Dialog v-model:visible="entryStockMovementDialog" header="Nuevo Movimiento Entrada" :modal="true">
-            <div class="p-6 grid grid-cols-1 md:grid-cols-2 gap-4">
+        <Dialog v-model:visible="entryStockMovementDialog" header="Nuevo Movimiento Entrada" :modal="true" :style="{ width: '80vw' }">
+            <!-- Sección Comprobante -->
+            <p class="font-bold text-lg mb-2">Comprobante</p>
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 border border-gray-300 rounded-md p-4 mb-6">
                 <!-- Serie -->
                 <div class="field">
                     <label for="serie" class="block mb-1 text-sm font-medium text-gray-700">Serie</label>
@@ -221,48 +250,110 @@ onMounted(async () => {
                 <!-- Estado -->
                 <div class="field">
                     <label for="estado" class="block mb-1 text-sm font-medium text-gray-700">Estado</label>
-                    <Dropdown id="estado" v-model="entryData.status" :options="estadoOptions" optionLabel="label" placeholder="Seleccione el estado" required class="w-full" />
+                    <Select id="estado" v-model="entryData.status" :options="estadoOptions" optionLabel="label" placeholder="Seleccione el estado" required class="w-full" />
                 </div>
 
                 <!-- Fecha Emisión -->
                 <div class="field">
                     <label for="fechaEmision" class="block mb-1 text-sm font-medium text-gray-700">Fecha Emisión</label>
-                    <Calendar id="fechaEmision" v-model="entryData.issue_date" showIcon class="w-full" />
+                    <DatePicker id="fechaEmision" v-model="entryData.issue_date" showIcon fluid iconDisplay="input" class="w-full" />
                 </div>
 
                 <!-- Proveedor -->
                 <div class="field">
                     <label for="proveedor" class="block mb-1 text-sm font-medium text-gray-700">Proveedor</label>
-                    <Dropdown id="proveedor" v-model="entryData.provider_id" :options="providers" placeholder="Seleccione un proveedor" required class="w-full" optionValue="value" optionLabel="label" />
+                    <Select id="proveedor" v-model="entryData.provider_id" :options="providers" placeholder="Seleccione un proveedor" required class="w-full" optionValue="value" optionLabel="label" />
                 </div>
 
-                <!-- Comentario (Textarea) -->
-                <div class="field md:col-span-2">
+                <!-- Comentario -->
+                <div class="field md:col-span-2 lg:col-span-3">
                     <label for="comentario" class="block mb-1 text-sm font-medium text-gray-700">Comentario</label>
                     <Textarea id="comentario" v-model="entryData.comment" rows="3" class="w-full border border-gray-300 rounded-md p-2" />
                 </div>
+            </div>
 
+            <!-- Sección Detalle -->
+            <p class="font-bold text-lg mb-2">Detalle</p>
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 border border-gray-300 rounded-md p-4 mb-6">
                 <!-- Productos -->
-                <div class="field md:col-span-2">
-                    <label for="comentario" class="block mb-1 text-sm font-medium text-gray-700">Productos</label>
-                    <AutoComplete dropdown v-model="selectedProduct" forceSelection optionLabel="name" :suggestions="filteredProducts" @complete="search" />
+                <div class="field md:col-span-2 lg:col-span-3">
+                    <label for="productos" class="block mb-1 text-sm font-medium text-gray-700">Buscar Producto</label>
+                    <AutoComplete dropdown v-model="selectedProduct" forceSelection optionLabel="fullDescription" :suggestions="filteredProducts" @complete="search" class="w-full" />
                 </div>
 
-                <div class="field md:col-span-2">
-                    <label class="block mb-1 text-sm font-medium text-gray-700">Productos</label>
-                    <div class="flex items-center space-x-2 mb-2">
-                        <Button label="Agregar Producto" icon="pi pi-plus" class="p-button-success" @click="addProduct" />
-                        <Button label="Eliminar Producto" icon="pi pi-trash" class="p-button-danger" @click="removeSelectedProduct" :disabled="!selectedProduct" />
-                    </div>
-                    <DataList :value="productos" v-model:selection="selectedProduct" dataKey="id" selectionMode="single" class="mt-2">
-                        <template #item="slotProps">
-                            <div class="flex justify-between items-center p-2 border rounded-md">
-                                <span>{{ slotProps.data.name }}</span>
-                                <span class="text-sm text-gray-500">{{ slotProps.data.price }}</span>
-                            </div>
-                        </template>
-                    </DataList>
+                <!-- Toggle Fecha Vencimiento -->
+                <div class="field">
+                    <label for="toggleFechaVencimiento" class="block mb-1 text-sm font-medium text-gray-700"> Habilitar Fecha Vencimiento</label>
+                    <ToggleButton id="toggleFechaVencimiento" v-model="toggleFechaVencimiento" onLabel="On" offLabel="Off" class="w-full" />
                 </div>
+
+                <!-- Fecha Vencimiento -->
+                <div class="field" v-if="toggleFechaVencimiento">
+                    <label for="fechaVencimiento" class="block mb-1 text-sm font-medium text-gray-700">Fecha Vencimiento</label>
+                    <DatePicker id="fechaVencimiento" v-model="itemDetails.expiration_date" showIcon fluid iconDisplay="input" class="w-full" />
+                </div>
+
+                <!-- Precio Unitario -->
+                <div class="field">
+                    <label for="precio" class="block mb-1 text-sm font-medium text-gray-700">Precio Unitario</label>
+                    <InputText id="precio" v-model="itemDetails.price" required class="w-full border border-gray-300 rounded-md p-2" type="number" />
+                </div>
+
+                <!-- Cantidad -->
+                <div class="field">
+                    <label for="cantidad" class="block mb-1 text-sm font-medium text-gray-700">Cantidad</label>
+                    <InputText id="cantidad" v-model="itemDetails.count" required class="w-full border border-gray-300 rounded-md p-2" type="number" />
+                </div>
+
+                <!-- Botón para agregar productos -->
+                <div class="field md:col-span-2 lg:col-span-3">
+                    <Button label="Agregar Producto" icon="pi pi-plus" class="p-button-success" @click="addProduct" />
+                </div>
+            </div>
+
+            <!-- Sección Lista de Productos -->
+            <p class="font-bold text-lg mb-2">Lista de Productos</p>
+            <div class="grid grid-cols-1 border border-gray-300 rounded-md p-4 mb-6">
+                <DataTable
+                    :value="movementsDetails"
+                    :paginator="true"
+                    v-model:selection="selectedProduct"
+                    dataKey="id"
+                    selectionMode="single"
+                    class="mt-2"
+                    :rows="30"
+                    stripedRows
+                    paginatorTemplate="FirstPageLink PrevPageLink PageLinks NextPageLink LastPageLink CurrentPageReport RowsPerPageDropdown"
+                    :rowsPerPageOptions="[5, 10, 25, 50, 100]"
+                    currentPageReportTemplate="Mostrando del {first} al {last} de {totalRecords} productos"
+                >
+                    <!-- Nueva columna para mostrar el número de cada elemento -->
+                    <Column header="#" :headerStyle="{ width: '3rem' }">
+                        <template #body="slotProps">
+                            {{ slotProps.index + 1 }}
+                        </template>
+                    </Column>
+                    <Column selectionMode="multiple" headerStyle="width: 3rem"></Column>
+
+                    <Column field="product_id" header="N°"></Column>
+                    <Column field="name" header="Nombre"></Column>
+                    <Column field="price" header="Precio Unitario">
+                        <template #body="slotProps">
+                            {{ formatCurrency(slotProps.data.price) }}
+                        </template></Column
+                    >
+                    <Column field="count" header="Cantidad"></Column>
+                    <Column field="total" header="Total">
+                        <template #body="slotProps">
+                            {{ formatCurrency(slotProps.data.total) }}
+                        </template>
+                    </Column>
+                    <Column field="expiration_date" header="Fecha expiración" :sortable="true">
+                        <template #body="slotProps">
+                            {{ slotProps.data.expiration_date ? dformat(slotProps.data.expiration_date, 'DD-MM-YY') : 'No expira' }}
+                        </template>
+                    </Column>
+                </DataTable>
             </div>
 
             <!-- Footer -->
