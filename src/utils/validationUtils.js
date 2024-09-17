@@ -17,7 +17,12 @@ export function validatePhone(phone) {
 export function capitalizeName(name) {
     return name.replace(/\b\w/g, (char) => char.toUpperCase());
 }
-
+export function toUpperCaseText(text) {
+    return text.toUpperCase();
+}
+export function padWithZeros(number) {
+    return number.toString().padStart(8, '0');
+}
 export function restrictToNumbers(event) {
     const charCode = event.which ? event.which : event.keyCode;
     if (charCode < 48 || charCode > 57) {
