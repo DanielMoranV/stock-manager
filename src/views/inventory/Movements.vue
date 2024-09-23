@@ -4,13 +4,12 @@ import { useProductsStore } from '@/stores/productsStore';
 import { useProvidersStore } from '@/stores/providersStore';
 import { useStockMomentsStore } from '@/stores/stockMovementsStore';
 import { dformat } from '@/utils/day';
-import { checkSpelling } from '@/utils/spellChecker';
 import { formatCurrency, padWithZeros, toUpperCaseText } from '@/utils/validationUtils';
 import { FilterMatchMode } from '@primevue/core/api';
 import DataTable from 'primevue/datatable';
 import InputNumber from 'primevue/inputnumber';
 import { useToast } from 'primevue/usetoast';
-import { onBeforeMount, onMounted, ref } from 'vue';
+import { onBeforeMount, onMounted, reactive, ref } from 'vue';
 
 const isLoading = ref(false);
 
@@ -36,6 +35,8 @@ const expandedRows = ref({});
 const selectedStockMovements = ref(null);
 const products = ref({});
 const items = ref([]);
+const isCollapsedVoucher = ref(false);
+const isCollapsed = ref(true);
 
 const expandAll = () => {
     expandedRows.value = stockMovements.value.reduce((acc, p) => (acc[p.id] = true) && acc, {});
@@ -96,12 +97,7 @@ const handleUpperCaseInput = () => {
 const formatNumber = () => {
     entryData.value.number = padWithZeros(entryData.value.number);
 };
-const errorsText = ref([]);
-const checkComment = () => {
-    errorsText.value = entryData.value.comment.split(' ').filter((word) => !checkSpelling(word));
 
-    console.log(errorsText.value);
-};
 // Referencia al campo de búsqueda
 const searchInput = ref(null);
 
@@ -133,6 +129,11 @@ onBeforeMount(() => {
     initFilters();
 });
 
+const removeProduct = (product) => {
+    movementsDetails.value = movementsDetails.value.filter((val) => val.id !== product.id);
+    toast.add({ severity: 'success', summary: 'Éxito', detail: 'Producto Eliminado', life: 3000 });
+};
+
 const loadProviders = async () => {
     if (!providersStore.getProvidersCbx) {
         await providersStore.fetchProviders();
@@ -145,9 +146,36 @@ onMounted(async () => {
     await loadProviders();
 
     products.value = productsStore.getProducts || (await productsStore.fetchProducts());
-
-    console.log(products.value);
 });
+
+const errors = reactive({
+    series: false,
+    number: false,
+    amount: false,
+    status: false,
+    issue_date: false,
+    provider_id: false
+});
+function handleNextStep(activateCallback) {
+    if (validateFieldsVoucher()) {
+        // Si la validación es exitosa, activa el siguiente paso
+        activateCallback('2');
+    } else {
+        // Muestra errores si la validación falla
+        console.log(errors);
+        toast.add({ severity: 'error', summary: 'Error', detail: 'Complete los campos obligatorios', life: 3000 });
+    }
+}
+const validateFieldsVoucher = () => {
+    errors.series = !entryData.value.series;
+    errors.number = !entryData.value.number;
+    errors.amount = !entryData.value.amount;
+    errors.status = !entryData.value.status;
+    errors.issue_date = !entryData.value.issue_date;
+    errors.provider_id = !entryData.value.provider_id;
+
+    return Object.values(errors).every((error) => !error);
+};
 </script>
 <template>
     <div class="card">
@@ -155,6 +183,8 @@ onMounted(async () => {
             <template #start>
                 <Button label="Ingreso" icon="pi pi-plus" severity="success" class="mr-2" @click="openNewEntry" />
                 <Button label="Salida" icon="pi pi-minus" severity="danger" class="mr-2" @click="openNewEntry" />
+                <Button label="Cuadre Stock" icon="pi pi-wrench" severity="warn" class="mr-2" @click="openNewEntry" />
+                <Button label="Traslado" icon="pi pi-arrow-right-arrow-left" severity="info" class="mr-2" @click="openNewEntry" />
                 <!-- <Button label="Eliminar" icon="pi pi-trash" severity="danger" @click="confirmDeleteSelected" :disabled="!selectedProducts || !selectedProducts.length" :loading="isLoading" /> -->
             </template>
 
@@ -196,7 +226,7 @@ onMounted(async () => {
             </template>
             <Column expander style="width: 2rem" />
             <Column field="id" header="N°" :sortable="true" headerStyle="width:5%; min-width:3rem;"> </Column>
-            <Column field="user.name" header="Usuario" :sortable="true" headerStyle="width:20%; min-width:10rem;"> </Column>
+            <Column field="user.name" header="Creado por" :sortable="true" headerStyle="width:20%; min-width:10rem;"> </Column>
             <Column field="category_movement.type" header="Tipo" :sortable="true" headerStyle="width:10%; min-width:5rem;">
                 <template #body="slotProps">
                     <span
@@ -246,152 +276,163 @@ onMounted(async () => {
             </template>
         </DataTable>
         <Dialog v-model:visible="entryStockMovementDialog" header="Ingreso de Productos" :modal="true" :style="{ width: '80vw' }">
-            <Fieldset legend="Comprobante" :toggleable="true">
-                <!-- Sección Comprobante -->
-                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
-                    <!-- Serie -->
-                    <div class="field">
-                        <label for="serie" class="block mb-1 text-sm font-medium text-gray-700">Serie</label>
-                        <InputText id="serie" v-model="entryData.series" required class="w-full border border-gray-300 rounded-md p-2" autofocus maxlength="4" @input="handleUpperCaseInput" />
-                    </div>
+            <Stepper value="1" linear>
+                <StepList>
+                    <Step value="1">Comprobante</Step>
+                    <Step value="2">Detalle</Step>
+                </StepList>
+                <StepPanels>
+                    <StepPanel v-slot="{ activateCallback }" value="1">
+                        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-2 border-2 border-dashed border-surface-200 dark:border-surface-700 rounded p-3">
+                            <!-- Serie -->
+                            <div class="field">
+                                <label for="serie" class="block mb-1 text-sm font-medium text-gray-700">Serie</label>
+                                <InputText id="serie" v-model="entryData.series" required class="w-full border border-gray-300 rounded-md p-2" autofocus maxlength="4" @input="handleUpperCaseInput" />
+                                <span v-if="errors.series" class="text-red-500 text-sm">El campo Serie es requerido</span>
+                            </div>
 
-                    <!-- Número -->
-                    <div class="field">
-                        <label for="numero" class="block mb-1 text-sm font-medium text-gray-700">Número</label>
-                        <InputText id="numero" v-model="entryData.number" required class="w-full border border-gray-300 rounded-md p-2" maxlength="4" type="number" @blur="formatNumber" />
-                    </div>
+                            <!-- Número -->
+                            <div class="field">
+                                <label for="numero" class="block mb-1 text-sm font-medium text-gray-700">Número</label>
+                                <InputText id="numero" v-model="entryData.number" required class="w-full border border-gray-300 rounded-md p-2" maxlength="8" type="number" @blur="formatNumber" />
+                                <span v-if="errors.number" class="text-red-500 text-sm">El campo Número es requerido</span>
+                            </div>
 
-                    <!-- Monto -->
-                    <div class="field">
-                        <label for="monto" class="block mb-1 text-sm font-medium text-gray-700">Monto</label>
-                        <InputNumber id="monto" v-model="entryData.amount" type="number" required class="w-full rounded-md" mode="currency" currency="PEN" locale="es-PE" />
-                    </div>
+                            <!-- Monto -->
+                            <div class="field">
+                                <label for="monto" class="block mb-1 text-sm font-medium text-gray-700">Monto</label>
+                                <InputNumber id="monto" v-model="entryData.amount" type="number" required class="w-full rounded-md" mode="currency" currency="PEN" locale="es-PE" />
+                                <span v-if="errors.amount" class="text-red-500 text-sm">El campo Monto es requerido</span>
+                            </div>
 
-                    <!-- Estado -->
-                    <div class="field">
-                        <label for="estado" class="block mb-1 text-sm font-medium text-gray-700">Estado</label>
-                        <Select id="estado" v-model="entryData.status" :options="estadoOptions" optionLabel="label" placeholder="Seleccione el estado" required class="w-full" />
-                    </div>
+                            <!-- Estado -->
+                            <div class="field">
+                                <label for="estado" class="block mb-1 text-sm font-medium text-gray-700">Estado</label>
+                                <Select id="estado" v-model="entryData.status" :options="estadoOptions" optionLabel="label" placeholder="Seleccione el estado" required class="w-full" />
+                                <span v-if="errors.status" class="text-red-500 text-sm">El campo Estado es requerido</span>
+                            </div>
 
-                    <!-- Fecha Emisión -->
-                    <div class="field">
-                        <label for="fechaEmision" class="block mb-1 text-sm font-medium text-gray-700">Fecha Emisión</label>
-                        <DatePicker id="fechaEmision" v-model="entryData.issue_date" showIcon fluid iconDisplay="input" class="w-full" />
-                    </div>
+                            <!-- Fecha Emisión -->
+                            <div class="field">
+                                <label for="fechaEmision" class="block mb-1 text-sm font-medium text-gray-700">Fecha Emisión</label>
+                                <DatePicker id="fechaEmision" v-model="entryData.issue_date" showIcon fluid iconDisplay="input" class="w-full" />
+                                <span v-if="errors.issue_date" class="text-red-500 text-sm">El campo Fecha Emisión es requerido</span>
+                            </div>
 
-                    <!-- Proveedor -->
-                    <div class="field">
-                        <label for="proveedor" class="block mb-1 text-sm font-medium text-gray-700">Proveedor</label>
-                        <Select id="proveedor" v-model="entryData.provider_id" :options="providers" placeholder="Seleccione un proveedor" required class="w-full" optionValue="value" optionLabel="label" />
-                    </div>
+                            <!-- Proveedor -->
+                            <div class="field">
+                                <label for="proveedor" class="block mb-1 text-sm font-medium text-gray-700">Proveedor</label>
+                                <Select id="proveedor" v-model="entryData.provider_id" :options="providers" placeholder="Seleccione un proveedor" required class="w-full" optionValue="value" optionLabel="label" />
+                                <span v-if="errors.provider_id" class="text-red-500 text-sm">El campo Proveedor es requerido</span>
+                            </div>
 
-                    <!-- Comentario -->
-                    <div class="field md:col-span-2 lg:col-span-3">
-                        <label for="comentario" class="block mb-1 text-sm font-medium text-gray-700">Comentario</label>
-                        <Textarea id="comentario" v-model="entryData.comment" rows="3" class="w-full border border-gray-300 rounded-md p-2" @input="checkComment" />
-                    </div>
-                </div>
-            </Fieldset>
-            <Fieldset legend="Detalle" :toggleable="true">
-                <!-- Sección Detalle -->
+                            <!-- Comentario -->
+                            <div class="field md:col-span-2 lg:col-span-3">
+                                <label for="comentario" class="block mb-1 text-sm font-medium text-gray-700">Comentario</label>
+                                <Textarea id="comentario" v-model="entryData.comment" rows="2" class="w-full border border-gray-300 rounded-md p-2" spellcheck="true" />
+                            </div>
+                        </div>
+                        <div class="flex pt-6 justify-end">
+                            <Button label="Siguiente" icon="pi pi-arrow-right" @click="handleNextStep(activateCallback)" />
+                        </div>
+                    </StepPanel>
+                    <StepPanel v-slot="{ activateCallback }" value="2">
+                        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-2">
+                            <!-- Productos -->
+                            <div class="field md:col-span-2 lg:col-span-3">
+                                <label for="searchProductos" class="block mb-1 text-sm font-medium text-gray-700">Buscar Producto</label>
+                                <AutoComplete ref="searchInput" id="searchProducts" dropdown v-model="selectedProduct" forceSelection optionLabel="fullDescription" :suggestions="filteredProducts" @complete="search" class="w-full" />
+                            </div>
 
-                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
-                    <!-- Productos -->
-                    <div class="field md:col-span-2 lg:col-span-3">
-                        <label for="searchProductos" class="block mb-1 text-sm font-medium text-gray-700">Buscar Producto</label>
-                        <AutoComplete ref="searchInput" id="searchProducts" dropdown v-model="selectedProduct" forceSelection optionLabel="fullDescription" :suggestions="filteredProducts" @complete="search" class="w-full" />
-                    </div>
+                            <!-- Toggle Fecha Vencimiento -->
+                            <div class="field">
+                                <label for="toggleFechaVencimiento" class="block mb-1 text-sm font-medium text-gray-700"> Habilitar Fecha Vencimiento</label>
+                                <ToggleButton id="toggleFechaVencimiento" v-model="toggleFechaVencimiento" onLabel="On" offLabel="Off" class="w-full" />
+                            </div>
 
-                    <!-- Toggle Fecha Vencimiento -->
-                    <div class="field">
-                        <label for="toggleFechaVencimiento" class="block mb-1 text-sm font-medium text-gray-700"> Habilitar Fecha Vencimiento</label>
-                        <ToggleButton id="toggleFechaVencimiento" v-model="toggleFechaVencimiento" onLabel="On" offLabel="Off" class="w-full" />
-                    </div>
+                            <!-- Fecha Vencimiento -->
+                            <div class="field" v-if="toggleFechaVencimiento">
+                                <label for="fechaVencimiento" class="block mb-1 text-sm font-medium text-gray-700">Fecha Vencimiento</label>
+                                <DatePicker id="fechaVencimiento" v-model="itemDetails.expiration_date" showIcon fluid iconDisplay="input" class="w-full" />
+                            </div>
 
-                    <!-- Fecha Vencimiento -->
-                    <div class="field" v-if="toggleFechaVencimiento">
-                        <label for="fechaVencimiento" class="block mb-1 text-sm font-medium text-gray-700">Fecha Vencimiento</label>
-                        <DatePicker id="fechaVencimiento" v-model="itemDetails.expiration_date" showIcon fluid iconDisplay="input" class="w-full" />
-                    </div>
+                            <!-- Precio Unitario -->
+                            <div class="field">
+                                <label for="precio" class="block mb-1 text-sm font-medium text-gray-700">Precio Unitario</label>
+                                <InputText id="precio" v-model="itemDetails.price" required class="w-full border border-gray-300 rounded-md p-2" type="number" />
+                            </div>
 
-                    <!-- Precio Unitario -->
-                    <div class="field">
-                        <label for="precio" class="block mb-1 text-sm font-medium text-gray-700">Precio Unitario</label>
-                        <InputText id="precio" v-model="itemDetails.price" required class="w-full border border-gray-300 rounded-md p-2" type="number" />
-                    </div>
+                            <!-- Cantidad -->
+                            <div class="field">
+                                <label for="cantidad" class="block mb-1 text-sm font-medium text-gray-700">Cantidad</label>
+                                <InputText id="cantidad" v-model="itemDetails.count" required class="w-full border border-gray-300 rounded-md p-2" type="number" />
+                            </div>
 
-                    <!-- Cantidad -->
-                    <div class="field">
-                        <label for="cantidad" class="block mb-1 text-sm font-medium text-gray-700">Cantidad</label>
-                        <InputText id="cantidad" v-model="itemDetails.count" required class="w-full border border-gray-300 rounded-md p-2" type="number" />
-                    </div>
+                            <!-- Botón para agregar productos -->
+                            <div class="field md:col-span-2 lg:col-span-3">
+                                <Button label="Agregar Producto" icon="pi pi-plus" class="p-button-success" @click="addProduct" />
+                            </div>
+                        </div>
 
-                    <!-- Botón para agregar productos -->
-                    <div class="field md:col-span-2 lg:col-span-3">
-                        <Button label="Agregar Producto" icon="pi pi-plus" class="p-button-success" @click="addProduct" />
-                    </div>
-                </div>
+                        <!-- Sección Lista de Productos -->
+                        <p class="font-bold text-lg mb-2">Lista de Productos</p>
+                        <div class="grid grid-cols-1 border border-gray-300 rounded-md p-4 mb-2">
+                            <DataTable
+                                :value="movementsDetails"
+                                :paginator="true"
+                                dataKey="id"
+                                selectionMode="single"
+                                class="mt-2"
+                                :rows="30"
+                                stripedRows
+                                paginatorTemplate="FirstPageLink PrevPageLink PageLinks NextPageLink LastPageLink CurrentPageReport RowsPerPageDropdown"
+                                :rowsPerPageOptions="[5, 10, 25, 50, 100]"
+                                currentPageReportTemplate="Mostrando del {first} al {last} de {totalRecords} productos"
+                            >
+                                <!-- <Column selectionMode="multiple" headerStyle="width: 3rem"></Column> -->
+                                <Column header="#" :headerStyle="{ width: '3rem' }">
+                                    <template #body="slotProps">
+                                        {{ slotProps.index + 1 }}
+                                    </template>
+                                </Column>
 
-                <!-- Sección Lista de Productos -->
-                <p class="font-bold text-lg mb-2">Lista de Productos</p>
-                <div class="grid grid-cols-1 border border-gray-300 rounded-md p-4 mb-6">
-                    <DataTable
-                        :value="movementsDetails"
-                        :paginator="true"
-                        v-model:selection="selectedProduct"
-                        dataKey="id"
-                        selectionMode="single"
-                        class="mt-2"
-                        :rows="30"
-                        stripedRows
-                        paginatorTemplate="FirstPageLink PrevPageLink PageLinks NextPageLink LastPageLink CurrentPageReport RowsPerPageDropdown"
-                        :rowsPerPageOptions="[5, 10, 25, 50, 100]"
-                        currentPageReportTemplate="Mostrando del {first} al {last} de {totalRecords} productos"
-                    >
-                        <!-- <Column selectionMode="multiple" headerStyle="width: 3rem"></Column> -->
-                        <Column header="#" :headerStyle="{ width: '3rem' }">
-                            <template #body="slotProps">
-                                {{ slotProps.index + 1 }}
-                            </template>
-                        </Column>
-
-                        <Column field="product_id" header="Id"></Column>
-                        <Column field="name" header="Nombre"></Column>
-                        <Column field="price" header="Precio Unitario">
-                            <template #body="slotProps">
-                                {{ formatCurrency(slotProps.data.price) }}
-                            </template></Column
-                        >
-                        <Column field="count" header="Cantidad"></Column>
-                        <Column field="total" header="Total">
-                            <template #body="slotProps">
-                                {{ formatCurrency(slotProps.data.total) }}
-                            </template>
-                        </Column>
-                        <Column field="expiration_date" header="Fecha expiración" :sortable="true">
-                            <template #body="slotProps">
-                                {{ slotProps.data.expiration_date ? dformat(slotProps.data.expiration_date, 'DD-MM-YY') : 'No expira' }}
-                            </template>
-                        </Column>
-                        <Column header="Acciones">
-                            <template #body="slotProps">
-                                <Button icon="pi pi-trash" class="p-button-danger p-button-sm" @click="removeProduct(slotProps.data)" />
-                            </template>
-                        </Column>
-                        <template #empty>
-                            <tr>
-                                <td colspan="100%" class="text-center">Añada productos al detalle</td>
-                            </tr>
-                        </template>
-                    </DataTable>
-                </div>
-            </Fieldset>
-
-            <!-- Footer -->
-            <template #footer>
-                <Button label="Cancelar" icon="pi pi-times" text @click="hideDialog" />
-                <Button label="Guardar" icon="pi pi-check" text :loading="isLoading" @click="saveEntryMovementStock" />
-            </template>
+                                <Column field="product_id" header="Id"></Column>
+                                <Column field="name" header="Nombre"></Column>
+                                <Column field="price" header="Precio Unitario">
+                                    <template #body="slotProps">
+                                        {{ formatCurrency(slotProps.data.price) }}
+                                    </template></Column
+                                >
+                                <Column field="count" header="Cantidad"></Column>
+                                <Column field="total" header="Total">
+                                    <template #body="slotProps">
+                                        {{ formatCurrency(slotProps.data.total) }}
+                                    </template>
+                                </Column>
+                                <Column field="expiration_date" header="Fecha expiración" :sortable="true">
+                                    <template #body="slotProps">
+                                        {{ slotProps.data.expiration_date ? dformat(slotProps.data.expiration_date, 'DD-MM-YY') : 'No expira' }}
+                                    </template>
+                                </Column>
+                                <Column header="Acciones">
+                                    <template #body="slotProps">
+                                        <Button icon="pi pi-trash" class="p-button-danger p-button-sm" @click="removeProduct(slotProps.data)" />
+                                    </template>
+                                </Column>
+                                <template #empty>
+                                    <tr>
+                                        <td colspan="100%" class="text-center">Añada productos al detalle</td>
+                                    </tr>
+                                </template>
+                            </DataTable>
+                        </div>
+                        <div class="flex pt-6 justify-between">
+                            <Button label="Anterior" severity="secondary" icon="pi pi-arrow-left" @click="activateCallback('1')" />
+                            <Button label="Guardar" icon="pi pi-check" :loading="isLoading" @click="saveEntryMovementStock" />
+                        </div>
+                    </StepPanel>
+                </StepPanels>
+            </Stepper>
         </Dialog>
     </div>
 </template>

@@ -69,5 +69,12 @@ export const uploadUnits = (payload) => axios.post('/units/store', payload);
 export const getStockMovements = () => axios.get('/stock-movements');
 export const createEntryStockMovements = (payload) => axios.post('/stock-movements', payload);
 
+// Parameters
+export const getParameters = () => axios.get('/parameters');
+export const getParameter = (id) => axios.get(`/parameters/${id}`);
+export const createParameter = (id) => axios.post('/parameters');
+export const updateParameter = (id) => axios.put(`/parameters/${id}`);
+export const deleteParameter = (id) => axios.delete(`/parameters/${id}`);
+
 // Proveedores
 export const getProviders = () => axios.get('/providers');

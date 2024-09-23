@@ -364,7 +364,7 @@ const deleteSelectedProducts = async () => {
             </div>
             <div class="mb-3">
                 <label for="description" class="block font-bold mb-1">Descripción</label>
-                <Textarea rows="2" id="description" v-model.trim="product.description" required autofocus fluid />
+                <Textarea rows="2" id="description" v-model.trim="product.description" required autofocus fluid spellcheck="true" />
             </div>
             <div class="mb-3">
                 <label for="unit" class="block font-bold mb-1">Unidad</label>

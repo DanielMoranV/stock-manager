@@ -15,6 +15,10 @@ const { onMenuToggle, toggleDarkMode, isDarkTheme } = useLayout();
 const goToProfile = () => {
     router.push({ name: 'profile' });
 };
+
+const goToConfig = () => {
+    router.push({ name: 'config' });
+};
 const confirmLogout = () => {
     logoutDialog.value = true;
 };
@@ -83,9 +87,9 @@ const logout = async () => {
 
             <div class="layout-topbar-menu hidden lg:block">
                 <div class="layout-topbar-menu-content">
-                    <button type="button" class="layout-topbar-action">
-                        <i class="pi pi-calendar"></i>
-                        <span>Calendar</span>
+                    <button @click="goToConfig()" type="button" class="layout-topbar-action">
+                        <i class="pi pi-cog"></i>
+                        <span>Configuración</span>
                     </button>
                     <button @click="goToProfile()" type="button" class="layout-topbar-action">
                         <i class="pi pi-user"></i>
